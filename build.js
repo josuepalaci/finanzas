@@ -116,7 +116,7 @@ const MANIFEST = {
   name: 'MisFinanzas',
   short_name: 'MisFinanzas',
   description: 'Control de finanzas personales — 100% offline',
-  start_url: '/MisFinanzas.html',
+  start_url: '/finanzas/',
   display: 'standalone',
   orientation: 'portrait-primary',
   background_color: '#1e1f2e',
@@ -146,7 +146,7 @@ async function main() {
 
   console.log('HTML...');
   const html = buildHTML(css, js);
-  fs.writeFileSync('dist/MisFinanzas.html', html);
+  fs.writeFileSync('dist/index.html', html);
 
   console.log('SW...');
   fs.copyFileSync('src/sw.js', 'dist/sw.js');
@@ -154,8 +154,8 @@ async function main() {
   console.log('Manifest...');
   fs.writeFileSync('dist/manifest.json', JSON.stringify(MANIFEST, null, 2));
 
-  const size = (fs.statSync('dist/MisFinanzas.html').size / 1024).toFixed(1);
-  console.log(`\nDone! dist/MisFinanzas.html — ${size} KB`);
+  const size = (fs.statSync('dist/index.html').size / 1024).toFixed(1);
+  console.log(`\nDone! dist/index.html — ${size} KB`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

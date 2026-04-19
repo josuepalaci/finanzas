@@ -83,7 +83,7 @@ npm run build
 npm run test
 ```
 
-La app se compilará como `dist/MisFinanzas.html` (archivo único) junto con:
+La app se compilará como `dist/index.html` (archivo único) junto con:
 - `dist/sw.js` - Service Worker
 - `dist/manifest.json` - PWA Manifest
 
