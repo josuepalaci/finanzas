@@ -115,7 +115,7 @@ function buildHTML(css, js) {
 const MANIFEST = {
   name: 'MisFinanzas',
   short_name: 'MisFinanzas',
-  description: 'Control de finanzas personales — 100% offline',
+  description: 'Control de finanzas personales',
   start_url: '/finanzas/',
   display: 'standalone',
   orientation: 'portrait-primary',
