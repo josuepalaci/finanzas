@@ -1,0 +1,132 @@
+/* ── Fuentes ─────────────────────────────────────────── */
+/* build.js reemplaza estos @font-face con base64 */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+/* ── Custom Properties — Tokyo Night Dark (default) ──── */
+:root {
+  /* Backgrounds */
+  --bg:      #1e1f2e;
+  --bg2:     #24283b;
+  --bg3:     #292e42;
+  --border:  #414868;
+
+  /* Text */
+  --text:    #c0caf5;
+  --text2:   #a9b1d6;
+  --text3:   #565f89;
+
+  /* Accent colors */
+  --blue:    #7aa2f7;
+  --red:     #f7768e;
+  --amber:   #ff9e64;
+  --purple:  #bb9af7;
+  --green:   #9ece6a;
+
+  /* Semantic aliases */
+  --accent:  var(--blue);
+  --income:  var(--green);
+  --expense: var(--red);
+  --warning: var(--amber);
+
+  /* Layout */
+  --sidebar-width:       220px;
+  --topbar-height:       56px;
+  --bottom-tabs-height:  64px;
+  --fab-size:            52px;
+
+  /* Misc */
+  --radius:   10px;
+  --radius-sm: 6px;
+  --shadow:   0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --transition: 0.2s ease;
+}
+
+/* ── Responsive layout tokens (Tailwind-scale) ───────── */
+/* lg — 1024px */
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-width:  240px;
+    --radius:         12px;
+    --radius-sm:       7px;
+  }
+}
+
+/* xl — 1280px */
+@media (min-width: 1280px) {
+  :root {
+    --sidebar-width:  260px;
+    --topbar-height:   60px;
+    --radius-sm:       8px;
+  }
+}
+
+/* 2xl — 1536px */
+@media (min-width: 1536px) {
+  :root {
+    --sidebar-width:  280px;
+    --topbar-height:   64px;
+  }
+}
+
+/* ── Reset ───────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Tipografía ──────────────────────────────────────── */
+h1, h2, h3, h4 { font-weight: 600; color: var(--text); }
+h1 { font-size: 22px; }
+h2 { font-size: 18px; }
+h3 { font-size: 15px; }
+h4 { font-size: 13px; }
+
+.mono {
+  font-family: 'DM Mono', 'Fira Mono', monospace;
+  font-size: 13px;
+}
+
+.amount {
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}
+
+.amount--income { color: var(--income); }
+.amount--expense { color: var(--expense); }
+
+/* ── Utilities ───────────────────────────────────────── */
+.text-muted   { color: var(--text3); }
+.text-accent  { color: var(--accent); }
+.text-income  { color: var(--income); }
+.text-expense { color: var(--expense); }
+.text-warning { color: var(--warning); }
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+}
