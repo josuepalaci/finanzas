@@ -124,7 +124,7 @@ src/
 └── sw.js                   # Service Worker
 
 dist/
-├── MisFinanzas.html       # Archivo único compilado
+├── index.html             # Archivo único compilado (servido en la raíz)
 ├── sw.js                  # Service Worker
 └── manifest.json          # PWA Manifest
 ```
