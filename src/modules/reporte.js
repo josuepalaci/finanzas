@@ -53,7 +53,7 @@ function render() {
     + _metricHTML('Ahorro',   MF.nav.formatCurrency(savings, cur),  savings >= 0 ? 'color:var(--income)' : 'color:var(--expense)')
     + (function() { var lnw = netWorth.length > 0 ? netWorth[netWorth.length - 1].netWorth : 0; return _metricHTML('Patrimonio', MF.nav.formatCurrency(lnw, cur), lnw >= 0 ? 'color:var(--income)' : 'color:var(--expense)'); })()
     + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    + '<div class="rpt-charts-grid">'
     + '<div class="card"><div class="card-header"><span class="card-title">Top categor\u00edas del mes</span></div>'
     + (topCatsHTML || '<p style="color:var(--text3);font-size:13px">Sin gastos este mes.</p>') + '</div>'
     + '<div class="card"><div class="card-header"><span class="card-title">Patrimonio neto \u2014 6 meses</span></div>'

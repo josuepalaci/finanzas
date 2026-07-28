@@ -43,7 +43,18 @@ function emptyDB() {
       currency: '$',
       reminderEnabled: false,
       reminderTime: '20:00',
-      budgetRollover: false
+      budgetRollover: false,
+      salario: {
+        bruto: 0,
+        frecuencia: 'mensual',
+        insaforp: false,
+        horasDiurnas: 0,
+        horasNocturnas: 0,
+        diasFeriados: 0,
+        diasNoTrabajados: 0,
+        otrosIngresos: [],
+        otrosDescuentos: []
+      }
     }
   };
 }

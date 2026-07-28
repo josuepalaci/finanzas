@@ -449,6 +449,32 @@
   .dash-charts-grid               { gap: 28px; }
 }
 
+/* ── Reporte charts grid ─────────────────────────────── */
+.rpt-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;        /* xs: apilado */
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* sm (480px): las dos tarjetas caben lado a lado */
+@media (min-width: 480px) {
+  .rpt-charts-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+}
+
+/* xl (1280px) */
+@media (min-width: 1280px) {
+  .rpt-charts-grid { gap: 20px; margin-bottom: 20px; }
+}
+
+/* Los tracks de un grid tienen min-width:auto, así que no pueden encogerse por
+   debajo del ancho intrínseco del canvas de Chart.js y desbordan el viewport. */
+.dash-charts-grid > *,
+.rpt-charts-grid  > * { min-width: 0; }
+
+/* Red de seguridad: ningún canvas debe exceder el ancho de su contenedor. */
+canvas { max-width: 100%; }
+
 /* ── Health Score widget ─────────────────────────────── */
 .health-score {
   display: flex;
@@ -554,4 +580,82 @@
   border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
   border-radius: var(--radius);
   padding: 16px;
+}
+
+/* ── Salario: sección de ingresos y descuentos ────────── */
+.sal-collapse__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sal-collapse__chevron {
+  flex-shrink: 0;
+  transition: transform var(--transition);
+}
+
+.sal-collapse__toggle[aria-expanded="true"] .sal-collapse__chevron {
+  transform: rotate(90deg);
+}
+
+.sal-collapse__badge {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+}
+
+.sal-collapse__body { margin-top: 14px; }
+
+.sal-fila--destacada { font-weight: 600; }
+
+.sal-hint {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+  min-height: 15px;   /* reserva la línea para que el layout no salte */
+}
+
+.sal-section-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  margin: 16px 0 8px;
+}
+
+.sal-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sal-row--gravable {
+  grid-template-columns: minmax(0, 1fr) 96px auto auto;
+}
+
+.sal-row .form-input { margin: 0; }
+
+.sal-row__grav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* xs: la descripción ocupa toda la fila y el resto se acomoda debajo */
+@media (max-width: 400px) {
+  .sal-row,
+  .sal-row--gravable { grid-template-columns: minmax(0, 1fr) 84px auto; }
+  .sal-row--gravable .sal-row__desc { grid-column: 1 / -1; }
 }
