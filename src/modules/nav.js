@@ -45,6 +45,8 @@ function init() {
   _initGlobalKeys();
   _checkReminderBanner();
   _applySystemNotificationOnLoad();
+  // Va al final: necesita el router montado y puede abrir un modal encima.
+  window.MF?.quickadd?.consume?.();
 }
 
 // ── Bloqueo de scroll de fondo (modal / drawer) ─────────────────────────────
@@ -75,10 +77,17 @@ function _initGlobalKeys() {
 
 // ── Router (hash-based) ────────────────────────────────────────────────────
 
+// El hash puede traer un query string ('#quick-add?desc=…'); la sección es
+// solo el segmento previo al '?'.
+function _sectionFromHash() {
+  const raw  = location.hash.slice(1);
+  const qIdx = raw.indexOf('?');
+  return (qIdx >= 0 ? raw.slice(0, qIdx) : raw) || 'dashboard';
+}
+
 function _initRouter() {
   window.addEventListener('hashchange', () => {
-    const section = location.hash.slice(1) || 'dashboard';
-    _showSection(section);
+    _showSection(_sectionFromHash());
     closeDrawer();
   });
 
@@ -92,8 +101,7 @@ function _initRouter() {
 
   document.getElementById('tab-mas')?.addEventListener('click', openDrawer);
 
-  const initial = location.hash.slice(1) || 'dashboard';
-  _showSection(initial);
+  _showSection(_sectionFromHash());
 }
 
 function go(section) {

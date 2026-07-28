@@ -11,6 +11,7 @@ var DEFAULT_CATS = [
   { name: 'Hogar',            color: '#e0af68', icon: 'house' },
   { name: 'Educaci\u00f3n',  color: '#2ac3de', icon: 'book' },
   { name: 'Ingresos',         color: '#9ece6a', icon: 'gastos' },
+  { name: 'Apple Pay',        color: '#a9b1d6', icon: 'coins' },
   { name: 'Otro',             color: '#565f89', icon: 'other' }
 ];
 
@@ -133,6 +134,6 @@ function getCatColor(cat, db) {
   return '#7aa2f7';
 }
 
-var _catAPI = { render: render, getCatColor: getCatColor };
+var _catAPI = { render: render, getCatColor: getCatColor, DEFAULT_CATS: DEFAULT_CATS };
 if (typeof window !== 'undefined') { window.MF = window.MF || {}; window.MF.categorias = _catAPI; }
 if (typeof module !== 'undefined' && module.exports) { module.exports = _catAPI; }

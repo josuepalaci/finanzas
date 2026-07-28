@@ -50,6 +50,10 @@ describe('emptyDB', () => {
     const b = db.emptyDB();
     assert.notEqual(a._meta.deviceId, b._meta.deviceId);
   });
+
+  test('incluye applePayAccount vacío en settings', () => {
+    assert.equal(db.emptyDB().settings.applePayAccount, '');
+  });
 });
 
 describe('loadData / saveData', () => {

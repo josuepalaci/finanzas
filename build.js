@@ -80,7 +80,7 @@ async function buildCSS() {
 
 const MODULE_ORDER = [
   'icons.js', 'db.js', 'sync.js', 'analytics.js', 'pwa.js', 'nav.js',
-  'categorias.js', 'dashboard.js', 'cuentas.js', 'gastos.js', 'presupuestos.js',
+  'categorias.js', 'quickadd.js', 'dashboard.js', 'cuentas.js', 'gastos.js', 'presupuestos.js',
   'metas.js', 'deudas.js', 'transferencias.js', 'recurrentes.js',
   'reporte.js', 'cuotas.js', 'salario.js', 'configuracion.js'
 ];

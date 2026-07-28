@@ -13,6 +13,7 @@ Una aplicación PWA minimalista y potente para gestionar tus finanzas personales
 - **Historial completo** de transacciones con filtros y búsqueda avanzada
 - **Notas en transacciones** para contexto adicional
 - **Transacciones recurrentes** para gastos/ingresos fijos
+- **Registro rápido desde iOS** - atajo que captura el gasto tras pagar con Apple Pay
 - **Transferencias entre cuentas** con seguimiento
 
 ### 📊 Análisis y Reportes

@@ -88,6 +88,10 @@ function render() {
 
 // ── Renderizar lista filtrada ────────────────────────────────────────────────
 
+const SOURCE_LABELS = { applepay: 'Apple Pay' };
+
+function _sourceLabel(src) { return SOURCE_LABELS[src] || src; }
+
 function _renderList() {
   const list = document.getElementById('gastos-list');
   if (!list) return;
@@ -132,11 +136,16 @@ function _renderList() {
         const amtColor  = isIncome ? 'var(--income)' : 'var(--expense)';
         const accName   = accountNames[tx.account] ? ' \u00b7 ' + MF.nav.esc(accountNames[tx.account]) : '';
         const noteLabel = tx.note ? ' \u00b7 <em>' + MF.nav.esc(tx.note) + '</em>' : '';
+        const srcBadge  = tx.source
+          ? ' <span style="display:inline-block;padding:1px 6px;border-radius:6px;'
+            + 'background:var(--bg3);color:var(--text3);font-size:10px;vertical-align:middle">'
+            + MF.nav.esc(_sourceLabel(tx.source)) + '</span>'
+          : '';
         html += '<div class="list-item">'
           + '<div class="list-item__icon" style="background:var(--bg3)">' + _catIcon(tx.cat) + '</div>'
           + '<div class="list-item__content">'
           + '<div class="list-item__title">' + MF.nav.esc(tx.desc) + '</div>'
-          + '<div class="list-item__sub">' + MF.nav.esc(tx.cat || 'Sin categor\u00eda') + accName + noteLabel + '</div>'
+          + '<div class="list-item__sub">' + MF.nav.esc(tx.cat || 'Sin categor\u00eda') + accName + noteLabel + srcBadge + '</div>'
           + '</div>'
           + '<div class="list-item__amount" style="color:' + amtColor + '">'
           + sign + ' ' + MF.nav.esc(MF.nav.formatCurrency(tx.amount, cur)) + '</div>'
@@ -161,38 +170,43 @@ function _dateLabel(isoDate) {
 
 // ── Modal de transacción ──────────────────────────────────────────────────────
 
-function _openAddModal(id) {
+function _openAddModal(id, prefill) {
   _db = MF.db.loadData();
   const tx = id ? _db.transactions.find(t => t.id === id) : null;
+  // `base` unifica los tres orígenes de valores: edición, prefill externo y vacío.
+  const base = tx || prefill || {};
 
   const accOptions = _db.accounts.map(a =>
-    '<option value="' + MF.nav.esc(a.id) + '"' + (tx && tx.account === a.id ? ' selected' : '') + '>'
+    '<option value="' + MF.nav.esc(a.id) + '"' + (base.account === a.id ? ' selected' : '') + '>'
     + MF.nav.esc(a.name) + '</option>'
   ).join('');
 
   const today       = new Date().toISOString().slice(0, 10);
-  const defaultCats = ['Alimentación','Transporte','Entretenimiento','Salud','Servicios','Ropa','Hogar','Educación','Ingresos','Otro'];
+  const defaultCats = (MF.categorias.DEFAULT_CATS || []).map(c => c.name);
   const customCats  = (_db.categories || []).filter(c => !c.hidden).map(c => c.name);
   const allCats     = defaultCats.concat(customCats.filter(c => !defaultCats.includes(c)));
 
   const catOptions = allCats.map(c =>
-    '<option value="' + MF.nav.esc(c) + '"' + (tx && tx.cat === c ? ' selected' : '') + '>' + MF.nav.esc(c) + '</option>'
+    '<option value="' + MF.nav.esc(c) + '"' + (base.cat === c ? ' selected' : '') + '>' + MF.nav.esc(c) + '</option>'
   ).join('');
+
+  const type = base.type || 'expense';
 
   const formHTML = '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Tipo</label>'
     + '<select class="form-select" id="tx-type">'
-    + '<option value="expense"' + (!tx || tx.type === 'expense' ? ' selected' : '') + '>Gasto</option>'
-    + '<option value="income"'  + (tx && tx.type === 'income' ? ' selected' : '') + '>Ingreso</option>'
+    + '<option value="expense"' + (type === 'expense' ? ' selected' : '') + '>Gasto</option>'
+    + '<option value="income"'  + (type === 'income'  ? ' selected' : '') + '>Ingreso</option>'
     + '</select></div>'
     + '<div class="form-group"><label class="form-label">Fecha</label>'
-    + '<input class="form-input" id="tx-date" type="date" value="' + MF.nav.esc(tx ? tx.date : today) + '"></div>'
+    + '<input class="form-input" id="tx-date" type="date" value="' + MF.nav.esc(base.date || today) + '"></div>'
     + '</div>'
     + '<div class="form-group"><label class="form-label">Descripci\u00f3n</label>'
-    + '<input class="form-input" id="tx-desc" value="' + MF.nav.esc(tx ? tx.desc : '') + '" placeholder="ej: Supermercado"></div>'
+    + '<input class="form-input" id="tx-desc" value="' + MF.nav.esc(base.desc || '') + '" placeholder="ej: Supermercado"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Monto</label>'
-    + '<input class="form-input" id="tx-amount" type="number" step="0.01" min="0" value="' + (tx ? tx.amount : '') + '"></div>'
+    + '<input class="form-input" id="tx-amount" type="number" step="0.01" min="0" value="'
+    + (base.amount != null ? Number(base.amount) : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label>'
     + '<select class="form-select" id="tx-cat">' + catOptions + '</select></div>'
     + '</div>'
@@ -200,9 +214,12 @@ function _openAddModal(id) {
     + '<select class="form-select" id="tx-account">' + accOptions + '</select></div>'
     + '<div class="form-group"><label class="form-label">Nota (opcional)</label>'
     + '<textarea class="form-textarea" id="tx-note" rows="2" placeholder="Detalles adicionales\u2026">'
-    + MF.nav.esc(tx ? tx.note : '') + '</textarea></div>';
+    + MF.nav.esc(base.note || '') + '</textarea></div>'
+    + '<input type="hidden" id="tx-source" value="' + MF.nav.esc(base.source || '') + '">';
 
-  MF.nav.showModal(formHTML, tx ? 'Editar transacci\u00f3n' : 'Nueva transacci\u00f3n', [
+  const title = tx ? 'Editar transacci\u00f3n' : (base.modalTitle || 'Nueva transacci\u00f3n');
+
+  MF.nav.showModal(formHTML, title, [
     { label: 'Cancelar', action: MF.nav.closeModal },
     { label: tx ? 'Guardar' : 'Agregar', primary: true, action: () => _saveTx(id) }
   ]);
@@ -216,6 +233,7 @@ function _saveTx(id) {
   const cat     = (document.getElementById('tx-cat') || {}).value;
   const account = (document.getElementById('tx-account') || {}).value;
   const note    = ((document.getElementById('tx-note') || {}).value || '').trim();
+  const source  = ((document.getElementById('tx-source') || {}).value || '').trim();
 
   if (!desc)               { MF.nav.toast('Descripci\u00f3n requerida', 'error'); return; }
   if (!amount || amount <= 0) { MF.nav.toast('Monto inv\u00e1lido', 'error'); return; }
@@ -226,9 +244,9 @@ function _saveTx(id) {
 
   if (id) {
     const idx = db.transactions.findIndex(t => t.id === id);
-    if (idx >= 0) db.transactions[idx] = { ...db.transactions[idx], desc, amount, date, type, cat, account, note, updatedAt: now };
+    if (idx >= 0) db.transactions[idx] = { ...db.transactions[idx], desc, amount, date, type, cat, account, note, source, updatedAt: now };
   } else {
-    db.transactions.push({ id: MF.db.generateId(), desc, amount, date, type, cat, account, note, createdAt: now, updatedAt: now });
+    db.transactions.push({ id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now });
   }
 
   MF.db.saveData(db);
@@ -257,7 +275,7 @@ function _deleteTx(id) {
 
 // ── Exports ─────────────────────────────────────────────────────────────────
 
-const _gastosAPI = { render };
+const _gastosAPI = { render, openAddModal: _openAddModal };
 
 if (typeof window !== 'undefined') {
   window.MF = window.MF || {};

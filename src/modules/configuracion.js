@@ -68,6 +68,8 @@ function render() {
     + '<button class="btn btn-danger" id="btn-reset" disabled>Borrar todos los datos</button>'
     + '</div></div>'
 
+    + '<div id="quickadd-slot"></div>'
+
     + '<div class="card">'
     + '<h3 style="margin-bottom:12px">Info</h3>'
     + '<div style="font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:6px">'
@@ -83,6 +85,9 @@ function render() {
   if (!container) return;
   container.textContent = '';
   container.insertAdjacentHTML('beforeend', viewHTML);
+
+  // quickadd es dueño de su propia UI y decide si se muestra (solo en iOS).
+  window.MF?.quickadd?.renderInstallCard?.(document.getElementById('quickadd-slot'));
 
   document.getElementById('btn-toggle-theme')?.addEventListener('click', MF.nav.toggleTheme);
 
