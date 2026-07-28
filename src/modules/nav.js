@@ -42,8 +42,35 @@ function init() {
   _initFab();
   _initDrawer();
   _initModal();
+  _initGlobalKeys();
   _checkReminderBanner();
   _applySystemNotificationOnLoad();
+}
+
+// ── Bloqueo de scroll de fondo (modal / drawer) ─────────────────────────────
+
+function _lockScroll() {
+  document.body.classList.add('scroll-locked');
+}
+
+// Solo se libera cuando ni el modal ni el drawer siguen abiertos.
+function _maybeUnlockScroll() {
+  const modalOpen  = document.getElementById('modal')?.classList.contains('active');
+  const drawerOpen = document.getElementById('drawer')?.classList.contains('active');
+  if (!modalOpen && !drawerOpen) document.body.classList.remove('scroll-locked');
+}
+
+// ── Teclas globales (Escape cierra capas superpuestas) ──────────────────────
+
+function _initGlobalKeys() {
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('modal')?.classList.contains('active')) {
+      closeModal();
+    } else if (document.getElementById('drawer')?.classList.contains('active')) {
+      closeDrawer();
+    }
+  });
 }
 
 // ── Router (hash-based) ────────────────────────────────────────────────────
@@ -179,13 +206,13 @@ function _initDrawer() {
 function openDrawer() {
   document.getElementById('drawer')?.classList.add('active');
   document.getElementById('drawer-overlay')?.classList.add('active');
-  document.body.style.overflow = 'hidden';
+  _lockScroll();
 }
 
 function closeDrawer() {
   document.getElementById('drawer')?.classList.remove('active');
   document.getElementById('drawer-overlay')?.classList.remove('active');
-  document.body.style.overflow = '';
+  _maybeUnlockScroll();
 }
 
 // ── Tema ───────────────────────────────────────────────────────────────────
@@ -279,6 +306,8 @@ function showModal(trustedHTML, title, buttons) {
 
   document.getElementById('modal-overlay')?.classList.add('active');
   modal.classList.add('active');
+  modal.scrollTop = 0;
+  _lockScroll();
 
   setTimeout(() => modal.querySelector('input, select, textarea')?.focus(), 50);
 }
@@ -286,6 +315,7 @@ function showModal(trustedHTML, title, buttons) {
 function closeModal() {
   document.getElementById('modal-overlay')?.classList.remove('active');
   document.getElementById('modal')?.classList.remove('active');
+  _maybeUnlockScroll();
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────

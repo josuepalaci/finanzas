@@ -137,9 +137,12 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   z-index: 300;
-  width: min(480px, calc(100vw - 32px));
-  max-height: calc(100vh - 64px);
+  width: min(480px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
+  /* dvh + safe-areas: el modal nunca queda bajo el notch ni el home indicator */
+  max-height: calc(100dvh - 32px - var(--safe-top) - var(--safe-bottom));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .modal.active { display: flex; flex-direction: column; }
@@ -183,6 +186,8 @@
 .form-select,
 .form-textarea {
   width: 100%;
+  min-width: 0;          /* impide que inputs desborden celdas de grid (form-row) */
+  max-width: 100%;
   padding: 9px 12px;
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -192,6 +197,14 @@
   font-family: inherit;
   outline: none;
   transition: border-color var(--transition);
+}
+
+/* En móvil los inputs deben tener ≥16px para que iOS no haga zoom al enfocar */
+@media (max-width: 767px) {
+  .form-input,
+  .form-select,
+  .form-textarea,
+  .search-bar input { font-size: 16px; }
 }
 
 .form-input:focus,
@@ -207,8 +220,14 @@
 
 .form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0,1fr) evita que el contenido ancho (fechas, montos) desborde */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+/* En pantallas muy angostas, apila los pares para que quepan sin recortarse */
+@media (max-width: 360px) {
+  .form-row { grid-template-columns: 1fr; }
 }
 
 /* ── Pills / Tags ────────────────────────────────────── */
@@ -250,8 +269,10 @@
 /* ── Toast notifications ─────────────────────────────── */
 .toast-container {
   position: fixed;
-  top: calc(var(--topbar-height) + 8px);
-  right: 16px;
+  top: calc(var(--topbar-height) + var(--safe-top) + 8px);
+  right: calc(16px + var(--safe-right));
+  left: calc(16px + var(--safe-left));
+  align-items: flex-end;
   z-index: 400;
   display: flex;
   flex-direction: column;

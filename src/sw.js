@@ -1,9 +1,10 @@
 // src/sw.js — MisFinanzas v2 Service Worker
 // Estrategia: Cache-First con actualización en background.
 
-const CACHE_NAME = 'misfinanzas-v2';
+const CACHE_NAME = 'misfinanzas-v3';
 const PRECACHE   = [
-  './MisFinanzas.html',
+  './',
+  './index.html',
   './manifest.json'
 ];
 
@@ -67,7 +68,7 @@ self.addEventListener('notificationclick', event => {
         for (const client of clientList) {
           if ('focus' in client) return client.focus();
         }
-        return clients.openWindow('./MisFinanzas.html');
+        return clients.openWindow('./');
       })
   );
 });
