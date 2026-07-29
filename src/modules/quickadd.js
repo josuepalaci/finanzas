@@ -261,13 +261,29 @@ function downloadShortcut() {
 // ── Card de instalación ────────────────────────────────────────────────────
 // Texto estático del propio código: lleva HTML a propósito y no pasa por esc().
 
+// El orden espeja las acciones del plist: preguntar, codificar, preguntar, abrir.
 const _PASOS = [
   'Abre la app Atajos y pulsa + para crear uno nuevo.',
   'Agrega la acción <strong>Pedir entrada</strong> con tipo Texto y la pregunta «¿En qué gastaste?».',
+  'Agrega <strong>Codificar URL</strong> y pásale esa respuesta. Sin este paso, una descripción con «&» o con acentos rompe el enlace.',
   'Agrega otra <strong>Pedir entrada</strong> con tipo Número y la pregunta «¿Cuánto?».',
-  'Agrega <strong>Abrir URL</strong> y pega la URL base; sustituye <code>DESC</code> por la primera respuesta y <code>MONTO</code> por la segunda.',
-  'En la pestaña Automatización, crea una automatización personal <strong>App → Wallet → Se cierra</strong> que ejecute este atajo, con «Ejecutar inmediatamente» activado.'
+  'Agrega <strong>Abrir URL</strong> y pega la URL base; sustituye <code>DESC</code> por el texto codificado y <code>MONTO</code> por la respuesta numérica.',
+  'En la pestaña Automatización, crea una automatización personal <strong>App → Wallet → Se cierra</strong> que ejecute este atajo, con «Ejecutar inmediatamente» activado.',
+  'Ya creado: mantén pulsado el atajo → <strong>Compartir</strong> → <strong>Copiar enlace de iCloud</strong>, y pega ese enlace aquí abajo.'
 ];
+
+// Solo aceptamos enlaces de iCloud: son los únicos que Apple firma, y evita que
+// un valor arbitrario acabe en un window.open.
+function normalizeShortcutLink(raw) {
+  const s = (typeof raw === 'string' ? raw : '').trim();
+  if (!s) return '';
+  let u;
+  try { u = new URL(s); } catch (_) { return ''; }
+  if (u.protocol !== 'https:') return '';
+  if (u.hostname !== 'www.icloud.com' && u.hostname !== 'icloud.com') return '';
+  if (!/^\/shortcuts\/[A-Za-z0-9]+\/?$/.test(u.pathname)) return '';
+  return u.href;
+}
 
 function renderInstallCard(slot) {
   if (!slot) return;
@@ -276,6 +292,7 @@ function renderInstallCard(slot) {
   const db       = MF.db.loadData();
   const accounts = db.accounts || [];
   const current  = (db.settings && db.settings.applePayAccount) || '';
+  const enlace   = normalizeShortcutLink(db.settings && db.settings.applePayShortcutUrl);
 
   const accOptions = accounts.length
     ? accounts.map(a =>
@@ -302,18 +319,32 @@ function renderInstallCard(slot) {
     + '<div class="form-group"><label class="form-label">Cuenta destino</label>'
     + '<select class="form-select" id="quickadd-account"' + (accounts.length ? '' : ' disabled') + '>'
     + accOptions + '</select></div>'
-    + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
-    + '<button class="btn btn-primary" id="btn-download-shortcut">Descargar atajo (.shortcut)</button>'
-    + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button>'
-    + '</div>'
-    + '<p style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.5">'
-    + 'Para importarlo necesitas <strong>Ajustes → Atajos → Permitir atajos no confiables</strong>. '
-    + 'Ese ajuste solo aparece después de haber ejecutado algún atajo al menos una vez.</p>'
+    + (enlace
+      ? '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
+        + '<button class="btn btn-primary" id="btn-install-shortcut">Instalar atajo</button>'
+        + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button>'
+        + '<button class="btn btn-ghost" id="btn-forget-shortcut-link">Olvidar enlace</button>'
+        + '</div>'
+      : '<p style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.5">'
+        + 'iOS solo instala atajos <strong>firmados por Apple</strong>, y la firma se genera en '
+        + 'sus servidores. Créalo una vez a mano y compártelo como enlace de iCloud: ese enlace '
+        + 'queda firmado y luego se instala de un toque, aquí y en cualquier iPhone.</p>'
+        + '<ol style="font-size:12px;color:var(--text2);margin:12px 0 0 18px;line-height:1.5">'
+        + pasosHTML + '</ol>'
+        + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
+        + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button></div>'
+        + '<div class="form-group" style="margin-top:12px"><label class="form-label">Enlace de iCloud del atajo</label>'
+        + '<input class="form-input" id="quickadd-link" inputmode="url" autocapitalize="off" '
+        + 'autocorrect="off" spellcheck="false" placeholder="https://www.icloud.com/shortcuts/…"></div>'
+        + '<button class="btn btn-primary" id="btn-save-shortcut-link">Guardar enlace</button>')
     + aviso
     + '<details style="margin-top:12px">'
-    + '<summary style="cursor:pointer;font-size:13px;color:var(--accent)">Crearlo a mano</summary>'
-    + '<ol style="font-size:12px;color:var(--text2);margin:12px 0 0 18px;line-height:1.5">'
-    + pasosHTML + '</ol></details>'
+    + '<summary style="cursor:pointer;font-size:13px;color:var(--accent)">Opciones avanzadas</summary>'
+    + '<p style="font-size:12px;color:var(--text2);margin:12px 0 0;line-height:1.5">'
+    + 'Descarga el <code>.shortcut</code> sin firmar. iOS no lo importa tal cual: hay que firmarlo '
+    + 'en un Mac con <code>shortcuts sign -m anyone -i entrada.shortcut -o firmado.shortcut</code>.</p>'
+    + '<button class="btn" id="btn-download-shortcut" style="margin-top:10px">Descargar .shortcut sin firmar</button>'
+    + '</details>'
     + '</div>';
 
   slot.textContent = '';
@@ -329,6 +360,36 @@ function renderInstallCard(slot) {
   document.getElementById('btn-download-shortcut')?.addEventListener('click', () => {
     downloadShortcut();
     MF.nav.toast('Atajo descargado');
+  });
+
+  document.getElementById('btn-install-shortcut')?.addEventListener('click', () => {
+    // Se relee de la DB en vez de cerrar sobre el valor: así el enlace vuelve a
+    // pasar por la validación justo antes de abrirlo.
+    const destino = normalizeShortcutLink(MF.db.loadData().settings?.applePayShortcutUrl);
+    if (!destino) { MF.nav.toast('El enlace guardado ya no es válido', 'error'); return; }
+    window.open(destino, '_blank', 'noopener');
+  });
+
+  document.getElementById('btn-save-shortcut-link')?.addEventListener('click', () => {
+    const valor = document.getElementById('quickadd-link')?.value || '';
+    const limpio = normalizeShortcutLink(valor);
+    if (!limpio) {
+      MF.nav.toast('Pega un enlace https://www.icloud.com/shortcuts/…', 'error');
+      return;
+    }
+    const db2 = MF.db.loadData();
+    db2.settings.applePayShortcutUrl = limpio;
+    MF.db.saveData(db2);
+    MF.nav.toast('Enlace guardado');
+    renderInstallCard(slot);
+  });
+
+  document.getElementById('btn-forget-shortcut-link')?.addEventListener('click', () => {
+    const db2 = MF.db.loadData();
+    db2.settings.applePayShortcutUrl = '';
+    MF.db.saveData(db2);
+    MF.nav.toast('Enlace olvidado');
+    renderInstallCard(slot);
   });
 
   document.getElementById('btn-copy-quickadd-url')?.addEventListener('click', () => {
@@ -353,6 +414,8 @@ const _quickaddAPI = {
   _normalizePath,
   downloadShortcut,
   renderInstallCard,
+  normalizeShortcutLink,
+  PASOS_MANUALES: _PASOS,
   QUICKADD_SECTION,
   DEFAULT_CAT,
   DEFAULT_SOURCE,

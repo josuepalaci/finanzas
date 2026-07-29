@@ -14,6 +14,8 @@ const {
   buildShortcutPlist,
   shortcutBaseUrl,
   _normalizePath,
+  normalizeShortcutLink,
+  PASOS_MANUALES,
   DEFAULT_CAT,
   DEFAULT_SOURCE,
   MAX_DESC
@@ -269,7 +271,7 @@ describe('renderInstallCard', () => {
     };
   }
 
-  function setup(userAgent, accounts) {
+  function setup(userAgent, accounts, enlace) {
     // En Node 24 `navigator` es un global de solo lectura: asignarlo se ignora.
     Object.defineProperty(global, 'navigator', {
       value: { userAgent: userAgent, maxTouchPoints: 5 },
@@ -282,7 +284,7 @@ describe('renderInstallCard', () => {
     };
     global.document = { getElementById: () => null };
     global.MF = {
-      db:    { loadData: () => ({ accounts: accounts, settings: { applePayAccount: '' } }) },
+      db:    { loadData: () => ({ accounts: accounts, settings: { applePayAccount: '', applePayShortcutUrl: enlace || '' } }) },
       nav:   { esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') },
       icons: { warning: '<svg></svg>' }
     };
@@ -300,9 +302,46 @@ describe('renderInstallCard', () => {
     const slot = fakeSlot();
     renderInstallCard(slot);
     assert.ok(slot.html.includes('Registro rápido desde iOS'));
-    assert.ok(slot.html.includes('btn-download-shortcut'));
     assert.ok(slot.html.includes('quickadd-account'));
-    assert.ok(slot.html.includes('Crearlo a mano'));
+    assert.ok(slot.html.includes('Opciones avanzadas'));
+    assert.ok(slot.html.includes('btn-download-shortcut'));
+  });
+
+  test('sin enlace guardado muestra los pasos y el campo para pegarlo', () => {
+    setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }]);
+    const slot = fakeSlot();
+    renderInstallCard(slot);
+    assert.ok(slot.html.includes('quickadd-link'));
+    assert.ok(slot.html.includes('btn-save-shortcut-link'));
+    assert.ok(slot.html.includes('firmados por Apple'));
+    // Los pasos dejan de estar escondidos tras un <details>.
+    assert.ok(slot.html.includes('Codificar URL'));
+    assert.ok(!slot.html.includes('btn-install-shortcut'));
+  });
+
+  test('con enlace guardado ofrece instalar y olvidar, sin pedirlo de nuevo', () => {
+    setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }], 'https://www.icloud.com/shortcuts/abc123');
+    const slot = fakeSlot();
+    renderInstallCard(slot);
+    assert.ok(slot.html.includes('btn-install-shortcut'));
+    assert.ok(slot.html.includes('btn-forget-shortcut-link'));
+    assert.ok(!slot.html.includes('btn-save-shortcut-link'));
+  });
+
+  test('un enlace guardado inválido se ignora y vuelve a pedir el pegado', () => {
+    setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }], 'https://evil.com/shortcuts/abc');
+    const slot = fakeSlot();
+    renderInstallCard(slot);
+    assert.ok(!slot.html.includes('btn-install-shortcut'));
+    assert.ok(slot.html.includes('btn-save-shortcut-link'));
+  });
+
+  test('el enlace guardado nunca se interpola en el HTML', () => {
+    const u = 'https://www.icloud.com/shortcuts/abc123';
+    setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }], u);
+    const slot = fakeSlot();
+    renderInstallCard(slot);
+    assert.ok(!slot.html.includes(u), 'se abre por JS leyendo la DB, no inyectado en markup');
   });
 
   test('deshabilita el selector cuando no hay cuentas', () => {
@@ -449,5 +488,64 @@ describe('buildShortcutPlist', () => {
   test('tolera baseUrl vacía sin lanzar', () => {
     assert.ok(buildShortcutPlist('').includes('#quick-add'));
     assert.ok(buildShortcutPlist(null).includes('#quick-add'));
+  });
+});
+
+describe('normalizeShortcutLink', () => {
+  test('acepta un enlace de iCloud con www', () => {
+    const u = 'https://www.icloud.com/shortcuts/0f1e2d3c4b5a69788796a5b4c3d2e1f0';
+    assert.equal(normalizeShortcutLink(u), u);
+  });
+
+  test('acepta el host sin www', () => {
+    assert.ok(normalizeShortcutLink('https://icloud.com/shortcuts/abc123'));
+  });
+
+  test('recorta espacios alrededor', () => {
+    const u = 'https://www.icloud.com/shortcuts/abc123';
+    assert.equal(normalizeShortcutLink('   ' + u + '  '), u);
+  });
+
+  test('rechaza vacío, null y undefined', () => {
+    assert.equal(normalizeShortcutLink(''), '');
+    assert.equal(normalizeShortcutLink(null), '');
+    assert.equal(normalizeShortcutLink(undefined), '');
+  });
+
+  test('rechaza texto que no es URL', () => {
+    assert.equal(normalizeShortcutLink('no soy una url'), '');
+  });
+
+  test('rechaza http sin cifrar', () => {
+    assert.equal(normalizeShortcutLink('http://www.icloud.com/shortcuts/abc123'), '');
+  });
+
+  test('rechaza otro dominio aunque la ruta calce', () => {
+    assert.equal(normalizeShortcutLink('https://evil.com/shortcuts/abc123'), '');
+    assert.equal(normalizeShortcutLink('https://icloud.com.evil.com/shortcuts/abc'), '');
+  });
+
+  test('rechaza una ruta de iCloud que no sea de atajos', () => {
+    assert.equal(normalizeShortcutLink('https://www.icloud.com/photos/abc123'), '');
+  });
+
+  test('rechaza javascript: aunque mencione icloud', () => {
+    assert.equal(normalizeShortcutLink('javascript:alert(1)//icloud.com/shortcuts/a'), '');
+  });
+});
+
+describe('PASOS_MANUALES', () => {
+  test('incluye el paso de codificar en URL que exige el plist', () => {
+    const texto = PASOS_MANUALES.join(' ').toLowerCase();
+    assert.ok(texto.includes('url'), 'debe mencionar codificación de URL');
+    assert.ok(PASOS_MANUALES.some(p => /codific/i.test(p)));
+  });
+
+  test('cubre las cuatro acciones del atajo mas la automatizacion', () => {
+    assert.ok(PASOS_MANUALES.length >= 5);
+  });
+
+  test('no queda ningun paso vacio', () => {
+    PASOS_MANUALES.forEach(p => assert.ok(p.trim().length > 0));
   });
 });

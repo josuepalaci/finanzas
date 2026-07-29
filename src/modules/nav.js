@@ -87,6 +87,13 @@ function _sectionFromHash() {
 
 function _initRouter() {
   window.addEventListener('hashchange', () => {
+    // Si la app ya estaba abierta, el atajo solo cambia el hash y no recarga:
+    // sin esto el intent se perdería porque consume() solo corre en init().
+    if (window.MF?.quickadd?.isQuickAddHash?.(location.hash)) {
+      window.MF.quickadd.consume();
+      closeDrawer();
+      return;
+    }
     _showSection(_sectionFromHash());
     closeDrawer();
   });

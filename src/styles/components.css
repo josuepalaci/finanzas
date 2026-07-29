@@ -164,6 +164,9 @@
 
 .modal-footer {
   display: flex;
+  /* Sin wrap, un footer de 3 botones desborda hacia la izquierda en pantallas
+     angostas y los botones quedan fuera del modal (flex-end empuja al inicio). */
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   padding: 0 16px 16px;

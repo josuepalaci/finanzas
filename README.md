@@ -2,7 +2,7 @@
 
 Una aplicación PWA minimalista y potente para gestionar tus finanzas personales sin necesidad de conexión a internet. Funciona completamente offline, sincroniza entre dispositivos y proporciona análisis avanzados de tus gastos.
 
-**Demo en vivo:** [josue-martinez.web.app](https://josue-martinez.web.app)
+**Demo en vivo:** [josuepalaci.github.io/finanzas](https://josuepalaci.github.io/finanzas/)
 
 ---
 

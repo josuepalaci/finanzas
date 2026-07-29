@@ -45,6 +45,7 @@ function emptyDB() {
       reminderTime: '20:00',
       budgetRollover: false,
       applePayAccount: '',
+      applePayShortcutUrl: '',
       salario: {
         bruto: 0,
         frecuencia: 'mensual',

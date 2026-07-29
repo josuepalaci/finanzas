@@ -54,6 +54,10 @@ describe('emptyDB', () => {
   test('incluye applePayAccount vacío en settings', () => {
     assert.equal(db.emptyDB().settings.applePayAccount, '');
   });
+
+  test('incluye applePayShortcutUrl vacío en settings', () => {
+    assert.equal(db.emptyDB().settings.applePayShortcutUrl, '');
+  });
 });
 
 describe('loadData / saveData', () => {

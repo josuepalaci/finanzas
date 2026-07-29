@@ -183,9 +183,16 @@ de esta feature y el foco de la revisión de código.
 Vive dentro de Configuración, como card "Registro rápido desde iOS". Contiene:
 
 - Selector de cuenta destino, persistido en `settings.applePayAccount`.
-- Botón "Descargar atajo (.shortcut)".
-- Botón "Copiar URL base".
-- Acordeón con los pasos manuales para crear el atajo a mano.
+- **Sin enlace guardado:** explicación de la firma, los pasos manuales visibles,
+  botón "Copiar URL base" y campo para pegar el enlace de iCloud.
+- **Con enlace guardado:** botón "Instalar atajo", "Copiar URL base" y "Olvidar
+  enlace".
+- Acordeón "Opciones avanzadas" con la descarga del `.shortcut` sin firmar.
+
+El enlace se valida con `normalizeShortcutLink()`, que exige `https` y host
+`icloud.com`/`www.icloud.com` con ruta `/shortcuts/<id>`. Nunca se interpola en
+el markup: el botón de instalar lo relee de la DB y lo revalida justo antes de
+abrirlo, así un valor manipulado en `localStorage` no llega a `window.open`.
 
 La `baseUrl` se deriva de `location.origin + location.pathname` en tiempo de
 generación. El dominio no se hardcodea, así que el atajo generado desde una
@@ -234,16 +241,26 @@ correspondiente. Cada acción lleva un `UUID` constante escrito en el código, n
 generado al azar, para que dos descargas del mismo atajo sean byte a byte
 idénticas y los tests puedan compararlas.
 
-### Riesgo conocido
+### Riesgo conocido — confirmado en dispositivo (2026-07-29)
 
-El plist va sin firmar. Su importación depende de que el usuario tenga
-habilitado *Ajustes → Atajos → Permitir atajos no confiables*, ajuste que solo
-aparece después de haber ejecutado al menos un atajo. No es verificable desde
-el entorno de desarrollo: requiere prueba en un dispositivo iOS real.
+El plist va sin firmar y **iOS no lo importa**. El diseño original asumía que
+bastaba con *Ajustes → Atajos → Permitir atajos no confiables*; esa suposición
+era incorrecta. Desde iOS 15 los archivos `.shortcut` requieren firma de Apple,
+y ese ajuste gobierna otra cosa: los atajos compartidos por enlace, no los
+archivos plist crudos. La firma se emite en los servidores de Apple, así que no
+hay forma de producirla desde la app ni offline.
 
-Por eso las instrucciones manuales son parte del entregable y no un extra
-opcional. Si la importación falla, el usuario tiene un camino completo para
-crear el atajo a mano en cinco pasos.
+**Vía de instalación adoptada.** El usuario crea el atajo a mano una vez y lo
+comparte con *Compartir → Copiar enlace de iCloud*: Apple lo notariza en ese
+momento y devuelve un `https://www.icloud.com/shortcuts/…` ya firmado. Ese
+enlace se guarda en `settings.applePayShortcutUrl` y a partir de ahí la card
+ofrece instalación de un toque, sin ajustes previos y reutilizable en cualquier
+iPhone.
+
+Por eso los pasos manuales pasaron de estar escondidos tras un `<details>` a ser
+la vía principal de la card. La descarga del `.shortcut` sin firmar queda en
+"Opciones avanzadas", útil solo para quien tenga un Mac y pueda ejecutar
+`shortcuts sign -m anyone -i entrada.shortcut -o firmado.shortcut`.
 
 ### Trigger de la automatización
 
