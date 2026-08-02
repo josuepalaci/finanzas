@@ -150,6 +150,12 @@ async function main() {
   console.log('SW...');
   fs.copyFileSync('src/sw.js', 'dist/sw.js');
 
+  // Atajo de iOS ya firmado (shortcuts sign -m anyone); se publica junto a la app.
+  if (fs.existsSync('MisFinanzas.shortcut')) {
+    console.log('Shortcut...');
+    fs.copyFileSync('MisFinanzas.shortcut', 'dist/MisFinanzas.shortcut');
+  }
+
   console.log('Manifest...');
   fs.writeFileSync('dist/manifest.json', JSON.stringify(MANIFEST, null, 2));
 
