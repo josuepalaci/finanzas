@@ -257,6 +257,11 @@ function _saveTx(id) {
     const newTx = { id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now };
     MF.db.applyTxEffect(db, null, newTx);
     db.transactions.push(newTx);
+    // Vía atajo fuera de la app instalada: la copia de Safari es un buzón; la
+    // tx se encola para pasarla a la app instalada por el portapapeles.
+    if (source && !(window.MF.pwa && window.MF.pwa.isInstalled())) {
+      MF.quickadd.addToOutbox(db, newTx);
+    }
   }
 
   MF.db.saveData(db);
