@@ -92,7 +92,7 @@ function _goalCardHTML(g, avgSavings, cur) {
 function _openAddModal(id) {
   var db   = MF.db.loadData();
   var goal = id ? db.goals.find(function(g) { return g.id === id; }) : null;
-  var today = new Date().toISOString().slice(0, 10);
+  var today = MF.db.localISODate();
 
   var formHTML = '<div class="form-group"><label class="form-label">Nombre</label>'
     + '<input class="form-input" id="goal-name" value="' + MF.nav.esc(goal ? goal.name : '') + '" placeholder="ej: Fondo de emergencia"></div>'

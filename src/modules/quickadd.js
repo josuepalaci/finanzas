@@ -105,7 +105,7 @@ function consume() {
     source:     intent.src,
     account:    resolveAccount(db),
     type:       'expense',
-    date:       new Date().toISOString().slice(0, 10),
+    date:       MF.db.localISODate(),
     modalTitle: 'Gasto desde Apple Pay'
   });
 

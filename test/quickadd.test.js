@@ -165,7 +165,7 @@ describe('consume', () => {
     global.location = { hash: hash, pathname: '/app/', search: '' };
     global.history  = { replaceState: (_s, _t, url) => calls.replaced.push(url) };
     global.MF = {
-      db:   { loadData: () => db },
+      db:   { loadData: () => db, localISODate: require('../src/modules/db').localISODate },
       nav:  {
         toast: (msg, type) => calls.toasts.push([msg, type]),
         go:    section => calls.navs.push(section)

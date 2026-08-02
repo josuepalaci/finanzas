@@ -74,7 +74,7 @@ function render() {
 function _openAddModal(id) {
   var db   = MF.db.loadData();
   var inst = id ? db.installments.find(function(i) { return i.id === id; }) : null;
-  var today = new Date().toISOString().slice(0, 10);
+  var today = MF.db.localISODate();
   var cardOpts = db.cards.map(function(c) {
     return '<option value="' + MF.nav.esc(c.id) + '"' + (inst && inst.card === c.id ? ' selected' : '') + '>' + MF.nav.esc(c.name) + '</option>';
   }).join('');

@@ -1,4 +1,7 @@
 // test/analytics.test.js
+// TZ fija: las fechas locales vs UTC son parte del contrato (usuario en UTC−6).
+process.env.TZ = 'America/El_Salvador';
+
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -15,11 +18,18 @@ const {
   calcMonthlyAvgSavings
 } = require('../src/modules/analytics');
 
-function thisMonth() { return new Date().toISOString().slice(0, 7); }
+// Las transacciones guardan fechas LOCALES (input type=date), así que los
+// helpers de test también deben ser locales — no toISOString(), que es UTC.
+function localISO(d) {
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
+function thisMonth() { const n = new Date(); return localISO(n).slice(0, 7); }
 function date(daysAgo) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 
 function emptyDB() {
@@ -171,19 +181,47 @@ describe('calcSpendingTrends', () => {
   });
 
   test('agrupa gastos por categoría correctamente', () => {
+    // `now` fijo a mitad de mes: el test no depende del día en que corra.
+    const now = new Date(2026, 2, 20);
     const db = emptyDB();
     db.transactions.push(
-      { date: date(0), type: 'expense', amount: 100, cat: 'Comida' },
-      { date: date(1), type: 'expense', amount: 50,  cat: 'Comida' },
-      { date: date(2), type: 'expense', amount: 200, cat: 'Ropa'   },
-      { date: date(0), type: 'income',  amount: 500, cat: 'Salario' }
+      { date: '2026-03-15', type: 'expense', amount: 100, cat: 'Comida' },
+      { date: '2026-03-13', type: 'expense', amount: 50,  cat: 'Comida' },
+      { date: '2026-03-01', type: 'expense', amount: 200, cat: 'Ropa'   },
+      { date: '2026-03-15', type: 'income',  amount: 500, cat: 'Salario' }
     );
-    const trends = calcSpendingTrends(db, 1);
+    const trends = calcSpendingTrends(db, 1, now);
     const thisPoint = trends[0];
+    assert.equal(thisPoint.month, '2026-03');
     assert.equal(thisPoint.byCategory['Comida'], 150);
     assert.equal(thisPoint.byCategory['Ropa'],   200);
     assert.equal(thisPoint.byCategory['Salario'], undefined);
     assert.equal(thisPoint.total, 350);
+  });
+
+  test('el último día del mes por la noche sigue siendo el mes local, no UTC', () => {
+    // 31 mar 8:00 p.m. en El Salvador = 1 abr 02:00 UTC: el mes actual es marzo.
+    const now = new Date(2026, 2, 31, 20, 0);
+    const db = emptyDB();
+    db.transactions.push({ date: '2026-03-31', type: 'expense', amount: 100, cat: 'Comida' });
+    const trends = calcSpendingTrends(db, 1, now);
+    assert.equal(trends[0].month, '2026-03');
+    assert.equal(trends[0].total, 100);
+  });
+});
+
+describe('calcHealthScore — mes local vs UTC', () => {
+  test('cuenta las transacciones del último día del mes por la noche', () => {
+    const now = new Date(2026, 2, 31, 20, 0); // 1 abr 02:00 UTC
+    const db = emptyDB();
+    db.transactions.push(
+      { date: '2026-03-31', type: 'income',  amount: 1000, cat: 'Ingresos' },
+      { date: '2026-03-31', type: 'expense', amount: 500,  cat: 'Comida'   }
+    );
+    const score = calcHealthScore(db, now);
+    // savingsRate 0.5 → 30 pts; sin budgets/goals/cards → 25+25+20 por defecto.
+    assert.equal(score.total, 100);
+    assert.equal(score.breakdown.savings, 30);
   });
 });
 

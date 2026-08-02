@@ -379,6 +379,11 @@
 
 .list-item:hover .list-item__actions { opacity: 1; }
 
+/* Táctil: no existe hover, las acciones deben estar siempre visibles */
+@media (hover: none) {
+  .list-item__actions { opacity: 1; }
+}
+
 /* ── Search bar ──────────────────────────────────────── */
 .search-bar {
   display: flex;

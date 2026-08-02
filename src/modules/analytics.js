@@ -1,9 +1,15 @@
 // src/modules/analytics.js
 // Cálculos de análisis financiero: health score, tendencias, proyecciones.
 
-function calcHealthScore(db) {
-  const now   = new Date();
-  const month = now.toISOString().slice(0, 7);
+// Clave de mes LOCAL (YYYY-MM). toISOString() es UTC y corre el mes en los
+// bordes (noches de fin de mes en UTC−6, o husos UTC+ a medianoche).
+function _monthKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function calcHealthScore(db, now) {
+  now = now || new Date();
+  const month = _monthKey(now);
 
   const monthTxs  = (db.transactions || []).filter(t => t.date && t.date.startsWith(month));
   const income    = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
@@ -60,14 +66,14 @@ function healthScoreMessage(score) {
   return 'Momento de actuar — revisa tus gastos y metas.';
 }
 
-function calcSpendingTrends(db, months) {
+function calcSpendingTrends(db, months, now) {
   months = months || 6;
+  now    = now || new Date();
   const result = [];
-  const now    = new Date();
 
   for (let i = months - 1; i >= 0; i--) {
     const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = d.toISOString().slice(0, 7);
+    const month = _monthKey(d);
     const label = d.toLocaleDateString('es', { month: 'short', year: '2-digit' });
 
     const txs        = (db.transactions || []).filter(t => t.date && t.date.startsWith(month) && t.type === 'expense');
@@ -83,9 +89,9 @@ function calcSpendingTrends(db, months) {
   return result;
 }
 
-function calcNetWorthEvolution(db, months) {
+function calcNetWorthEvolution(db, months, now) {
   months = months || 6;
-  const now = new Date();
+  now    = now || new Date();
 
   const currentAssets = (db.accounts || []).reduce((s, a) => s + (a.balance || 0), 0);
   const currentDebts  = (db.debts   || []).reduce((s, d) => s + (d.remaining || 0), 0)
@@ -96,7 +102,7 @@ function calcNetWorthEvolution(db, months) {
 
   for (let i = 0; i < months; i++) {
     const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = d.toISOString().slice(0, 7);
+    const month = _monthKey(d);
     const label = d.toLocaleDateString('es', { month: 'short', year: '2-digit' });
 
     const txs     = (db.transactions || []).filter(t => t.date && t.date.startsWith(month));
@@ -136,12 +142,11 @@ function projectDebt(debt) {
   return Math.ceil(remaining / monthly);
 }
 
-function calcMonthlyAvgSavings(db, months) {
+function calcMonthlyAvgSavings(db, months, now) {
   months = months || 3;
-  const trends = calcSpendingTrends(db, months);
-
-  const now      = new Date();
-  const nowMonth = now.toISOString().slice(0, 7);
+  now    = now || new Date();
+  const trends   = calcSpendingTrends(db, months, now);
+  const nowMonth = _monthKey(now);
 
   let totalSavings = 0;
   let count        = 0;

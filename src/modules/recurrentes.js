@@ -7,7 +7,7 @@ function render() {
   var cur = (db.settings && db.settings.currency) || '$';
 
   var today     = new Date();
-  var month     = today.toISOString().slice(0, 7);
+  var month     = MF.db.localMonth(today);
   var dayOfMonth = today.getDate();
 
   var overdueIds = new Set();

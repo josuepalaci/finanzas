@@ -8,7 +8,7 @@ function render() {
   const cur = (db.settings && db.settings.currency) || '$';
 
   const now      = new Date();
-  const month    = now.toISOString().slice(0, 7);
+  const month    = MF.db.localMonth(now);
   const monthTxs = db.transactions.filter(t => t.date && t.date.startsWith(month) && t.type === 'expense');
 
   const spentByCat = {};
@@ -105,9 +105,8 @@ function _openAddModal(id) {
   const db     = MF.db.loadData();
   const budget = id ? db.budgets.find(b => b.id === id) : null;
 
-  const defaultCats = ['Alimentación','Transporte','Entretenimiento','Salud','Servicios','Ropa','Hogar','Educación','Otro'];
-  const customCats  = (db.categories || []).filter(c => !c.hidden).map(c => c.name);
-  const allCats     = defaultCats.concat(customCats.filter(c => !defaultCats.includes(c)));
+  const allCats = MF.categorias.visibleCatNames(db);
+  if (budget && budget.cat && !allCats.includes(budget.cat)) allCats.push(budget.cat);
   const catOptions  = allCats.map(c =>
     '<option value="' + MF.nav.esc(c) + '"' + (budget && budget.cat === c ? ' selected' : '') + '>' + MF.nav.esc(c) + '</option>'
   ).join('');

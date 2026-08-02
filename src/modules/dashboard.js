@@ -24,7 +24,7 @@ function render() {
 
   const db       = MF.db.loadData();
   const now      = new Date();
-  const month    = now.toISOString().slice(0, 7);
+  const month    = MF.db.localMonth(now);
   const cur      = (db.settings && db.settings.currency) || '$';
 
   const monthTxs = db.transactions.filter(t => t.date && t.date.startsWith(month));

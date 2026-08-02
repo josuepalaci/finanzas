@@ -205,7 +205,7 @@ function _saveDebt(id) {
 
   if (id) {
     var idx = db.debts.findIndex(function(d) { return d.id === id; });
-    if (idx >= 0) db.debts[idx] = Object.assign({}, db.debts[idx], { name: name, type: type, rate: rate, total: total, remaining: remaining, monthly: monthly, color: color, updatedAt: now });
+    if (idx >= 0) db.debts[idx] = Object.assign({}, db.debts[idx], { name: name, type: type, rate: rate, total: total, remaining: Number.isFinite(remaining) ? remaining : db.debts[idx].remaining, monthly: monthly, color: color, updatedAt: now });
   } else {
     db.debts.push({ id: MF.db.generateId(), name: name, type: type, rate: rate, total: total, remaining: remaining || total, monthly: monthly, color: color, createdAt: now, updatedAt: now });
   }

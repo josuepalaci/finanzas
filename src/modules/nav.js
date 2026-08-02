@@ -361,7 +361,7 @@ function _checkReminderBanner() {
   try {
     const db = window.MF?.db?.loadData?.();
     if (!db) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.MF.db.localISODate();
     const hasTx = db.transactions.some(t => t.date === today);
     if (!hasTx) {
       document.getElementById('reminder-banner')?.classList.add('active');
@@ -382,7 +382,7 @@ function _applySystemNotificationOnLoad() {
     if (typeof Notification === 'undefined') return;
     if (Notification.permission !== 'granted') return;
 
-    const today   = new Date().toISOString().slice(0, 10);
+    const today   = window.MF.db.localISODate();
     const hasTx   = db.transactions.some(t => t.date === today);
     if (hasTx) return;
 

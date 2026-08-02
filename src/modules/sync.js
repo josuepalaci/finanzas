@@ -27,7 +27,9 @@ function _triggerDownload(filename, content, mimeType) {
 }
 
 function _isoDate(d) {
-  return new Date(d).toISOString().slice(0, 10);
+  const x = new Date(d);
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0')
+    + '-' + String(x.getDate()).padStart(2, '0');
 }
 
 function exportJSON() {
@@ -169,7 +171,7 @@ function importIncremental() {
     const html = `
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="font-size:13px;color:var(--text2)">
-          Dispositivo origen: <strong style="color:var(--text)">${preview.exportedAt}</strong>
+          Backup exportado el: <strong style="color:var(--text)">${preview.exportedAt}</strong>
         </div>
         <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:6px;">
           ${preview.newRecords > 0 ? `<div style="color:var(--income);display:flex;align-items:center;gap:4px">${window.MF.icons.check} ${preview.newRecords} registro${preview.newRecords !== 1 ? 's' : ''} nuevo${preview.newRecords !== 1 ? 's' : ''}</div>` : ''}

@@ -10,7 +10,7 @@ function render() {
   var db  = MF.db.loadData();
   var cur = (db.settings && db.settings.currency) || '$';
   var now = new Date();
-  var month = now.toISOString().slice(0, 7);
+  var month = MF.db.localMonth(now);
   var monthLabel = now.toLocaleDateString('es', { month: 'long', year: 'numeric' });
 
   var monthTxs = db.transactions.filter(function(t) { return t.date && t.date.startsWith(month); });

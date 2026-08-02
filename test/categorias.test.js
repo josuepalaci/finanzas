@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 
 global.window = {};
 
-const { DEFAULT_CATS, getCatColor } = require('../src/modules/categorias');
+const { DEFAULT_CATS, getCatColor, visibleCatNames } = require('../src/modules/categorias');
 
 describe('DEFAULT_CATS', () => {
   test('se exporta como array no vacío', () => {
@@ -35,5 +35,38 @@ describe('DEFAULT_CATS', () => {
 
   test('getCatColor resuelve el color de Apple Pay', () => {
     assert.equal(getCatColor('Apple Pay', { categories: [] }), '#a9b1d6');
+  });
+});
+
+describe('visibleCatNames', () => {
+  test('incluye predeterminadas y personalizadas', () => {
+    const db = { categories: [{ name: 'Mascotas' }], settings: {} };
+    const names = visibleCatNames(db);
+    assert.ok(names.includes('Alimentación'));
+    assert.ok(names.includes('Mascotas'));
+  });
+
+  test('excluye predeterminadas ocultas con settings.hiddenCats', () => {
+    const db = { categories: [], settings: { hiddenCats: ['Ropa', 'Educación'] } };
+    const names = visibleCatNames(db);
+    assert.ok(!names.includes('Ropa'));
+    assert.ok(!names.includes('Educación'));
+    assert.ok(names.includes('Alimentación'));
+  });
+
+  test('excluye personalizadas con hidden:true', () => {
+    const db = { categories: [{ name: 'Mascotas', hidden: true }], settings: {} };
+    assert.ok(!visibleCatNames(db).includes('Mascotas'));
+  });
+
+  test('no duplica cuando una personalizada repite un nombre predeterminado', () => {
+    const db = { categories: [{ name: 'Ropa' }], settings: {} };
+    const names = visibleCatNames(db);
+    assert.equal(names.filter(n => n === 'Ropa').length, 1);
+  });
+
+  test('tolera db sin settings ni categories', () => {
+    const names = visibleCatNames({});
+    assert.ok(names.length >= DEFAULT_CATS.length);
   });
 });

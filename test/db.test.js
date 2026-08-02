@@ -1,4 +1,7 @@
 // test/db.test.js
+// TZ fija: las fechas locales vs UTC son parte del contrato (usuario en UTC−6).
+process.env.TZ = 'America/El_Salvador';
+
 const { test, describe, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -85,6 +88,30 @@ describe('loadData / saveData', () => {
     const data = db.loadData();
     assert.equal(data._meta.version, 2);
     assert.deepEqual(data.transactions, []);
+  });
+});
+
+describe('localISODate / localMonth', () => {
+  test('formatea la fecha local con padding', () => {
+    assert.equal(db.localISODate(new Date(2026, 0, 5)), '2026-01-05');
+  });
+
+  test('usa el día local aunque en UTC ya sea el día siguiente', () => {
+    // 31 ago 8:00 p.m. en El Salvador = 1 sep 02:00 UTC
+    assert.equal(db.localISODate(new Date(2026, 7, 31, 20, 0)), '2026-08-31');
+  });
+
+  test('localMonth usa el mes local aunque en UTC ya sea el mes siguiente', () => {
+    assert.equal(db.localMonth(new Date(2026, 11, 31, 23, 59)), '2026-12');
+  });
+
+  test('sin argumento usan la fecha actual', () => {
+    const now = new Date();
+    const esperado = now.getFullYear() + '-'
+      + String(now.getMonth() + 1).padStart(2, '0') + '-'
+      + String(now.getDate()).padStart(2, '0');
+    assert.equal(db.localISODate(), esperado);
+    assert.equal(db.localMonth(), esperado.slice(0, 7));
   });
 });
 

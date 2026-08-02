@@ -119,7 +119,7 @@ function _openAddModal(id) {
         var idx = db2.categories.findIndex(function(c) { return c.id === id; });
         if (idx >= 0) db2.categories[idx] = Object.assign({}, db2.categories[idx], { name: name, color: color, icon: icon, updatedAt: now });
       } else {
-        db2.categories.push({ id: MF.db.generateId(), name: name, color: color, icon: icon, isCustom: true, hidden: false });
+        db2.categories.push({ id: MF.db.generateId(), name: name, color: color, icon: icon, isCustom: true, hidden: false, createdAt: now, updatedAt: now });
       }
       MF.db.saveData(db2); MF.nav.closeModal(); MF.nav.toast(id ? 'Categor\u00eda actualizada' : 'Categor\u00eda creada'); render();
     }}
@@ -134,6 +134,19 @@ function getCatColor(cat, db) {
   return '#7aa2f7';
 }
 
-var _catAPI = { render: render, getCatColor: getCatColor, DEFAULT_CATS: DEFAULT_CATS };
+// Nombres de categoría para los formularios: predeterminadas (menos las
+// ocultas en settings.hiddenCats) + personalizadas visibles, sin duplicados.
+function visibleCatNames(db) {
+  var hidden   = new Set((db && db.settings && db.settings.hiddenCats) || []);
+  var defaults = DEFAULT_CATS.map(function(c) { return c.name; })
+    .filter(function(n) { return !hidden.has(n); });
+  var custom = ((db && db.categories) || [])
+    .filter(function(c) { return !c.hidden; })
+    .map(function(c) { return c.name; })
+    .filter(function(n) { return !defaults.includes(n); });
+  return defaults.concat(custom);
+}
+
+var _catAPI = { render: render, getCatColor: getCatColor, visibleCatNames: visibleCatNames, DEFAULT_CATS: DEFAULT_CATS };
 if (typeof window !== 'undefined') { window.MF = window.MF || {}; window.MF.categorias = _catAPI; }
 if (typeof module !== 'undefined' && module.exports) { module.exports = _catAPI; }

@@ -979,6 +979,11 @@ h4 { font-size: 13px; }
 
 .list-item:hover .list-item__actions { opacity: 1; }
 
+/* Táctil: no existe hover, las acciones deben estar siempre visibles */
+@media (hover: none) {
+  .list-item__actions { opacity: 1; }
+}
+
 /* ── Search bar ──────────────────────────────────────── */
 .search-bar {
   display: flex;
@@ -1472,6 +1477,22 @@ function generateId() {
   });
 }
 
+// ── Fechas locales ─────────────────────────────────────────────────────────
+// Las fechas de transacción son locales (input type=date). toISOString() es
+// UTC: en UTC−6, después de las 6 p.m. "hoy" ya sería mañana. Todo "hoy" o
+// "mes actual" del app debe salir de estos helpers.
+
+function localISODate(date) {
+  const d = date || new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
+
+function localMonth(date) {
+  return localISODate(date).slice(0, 7);
+}
+
 // ── DB vacía ───────────────────────────────────────────────────────────────
 
 function emptyDB() {
@@ -1693,7 +1714,7 @@ function generateDemoData() {
   function isoDate(daysAgo) {
     const d = new Date(now);
     d.setDate(d.getDate() - daysAgo);
-    return d.toISOString().slice(0, 10);
+    return localISODate(d);
   }
 
   function isoNow() { return now.toISOString(); }
@@ -1786,6 +1807,8 @@ const _dbAPI = {
   clearData,
   emptyDB,
   generateId,
+  localISODate,
+  localMonth,
   storageUsedKB,
   generateDemoData,
   migrateV1toV2
@@ -1829,7 +1852,9 @@ function _triggerDownload(filename, content, mimeType) {
 }
 
 function _isoDate(d) {
-  return new Date(d).toISOString().slice(0, 10);
+  const x = new Date(d);
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0')
+    + '-' + String(x.getDate()).padStart(2, '0');
 }
 
 function exportJSON() {
@@ -1971,7 +1996,7 @@ function importIncremental() {
     const html = `
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="font-size:13px;color:var(--text2)">
-          Dispositivo origen: <strong style="color:var(--text)">${preview.exportedAt}</strong>
+          Backup exportado el: <strong style="color:var(--text)">${preview.exportedAt}</strong>
         </div>
         <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:6px;">
           ${preview.newRecords > 0 ? `<div style="color:var(--income);display:flex;align-items:center;gap:4px">${window.MF.icons.check} ${preview.newRecords} registro${preview.newRecords !== 1 ? 's' : ''} nuevo${preview.newRecords !== 1 ? 's' : ''}</div>` : ''}
@@ -2027,9 +2052,15 @@ if (typeof window !== 'undefined') {
 // src/modules/analytics.js
 // Cálculos de análisis financiero: health score, tendencias, proyecciones.
 
-function calcHealthScore(db) {
-  const now   = new Date();
-  const month = now.toISOString().slice(0, 7);
+// Clave de mes LOCAL (YYYY-MM). toISOString() es UTC y corre el mes en los
+// bordes (noches de fin de mes en UTC−6, o husos UTC+ a medianoche).
+function _monthKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function calcHealthScore(db, now) {
+  now = now || new Date();
+  const month = _monthKey(now);
 
   const monthTxs  = (db.transactions || []).filter(t => t.date && t.date.startsWith(month));
   const income    = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
@@ -2086,14 +2117,14 @@ function healthScoreMessage(score) {
   return 'Momento de actuar — revisa tus gastos y metas.';
 }
 
-function calcSpendingTrends(db, months) {
+function calcSpendingTrends(db, months, now) {
   months = months || 6;
+  now    = now || new Date();
   const result = [];
-  const now    = new Date();
 
   for (let i = months - 1; i >= 0; i--) {
     const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = d.toISOString().slice(0, 7);
+    const month = _monthKey(d);
     const label = d.toLocaleDateString('es', { month: 'short', year: '2-digit' });
 
     const txs        = (db.transactions || []).filter(t => t.date && t.date.startsWith(month) && t.type === 'expense');
@@ -2109,9 +2140,9 @@ function calcSpendingTrends(db, months) {
   return result;
 }
 
-function calcNetWorthEvolution(db, months) {
+function calcNetWorthEvolution(db, months, now) {
   months = months || 6;
-  const now = new Date();
+  now    = now || new Date();
 
   const currentAssets = (db.accounts || []).reduce((s, a) => s + (a.balance || 0), 0);
   const currentDebts  = (db.debts   || []).reduce((s, d) => s + (d.remaining || 0), 0)
@@ -2122,7 +2153,7 @@ function calcNetWorthEvolution(db, months) {
 
   for (let i = 0; i < months; i++) {
     const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const month = d.toISOString().slice(0, 7);
+    const month = _monthKey(d);
     const label = d.toLocaleDateString('es', { month: 'short', year: '2-digit' });
 
     const txs     = (db.transactions || []).filter(t => t.date && t.date.startsWith(month));
@@ -2162,12 +2193,11 @@ function projectDebt(debt) {
   return Math.ceil(remaining / monthly);
 }
 
-function calcMonthlyAvgSavings(db, months) {
+function calcMonthlyAvgSavings(db, months, now) {
   months = months || 3;
-  const trends = calcSpendingTrends(db, months);
-
-  const now      = new Date();
-  const nowMonth = now.toISOString().slice(0, 7);
+  now    = now || new Date();
+  const trends   = calcSpendingTrends(db, months, now);
+  const nowMonth = _monthKey(now);
 
   let totalSavings = 0;
   let count        = 0;
@@ -2646,7 +2676,7 @@ function _checkReminderBanner() {
   try {
     const db = window.MF?.db?.loadData?.();
     if (!db) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.MF.db.localISODate();
     const hasTx = db.transactions.some(t => t.date === today);
     if (!hasTx) {
       document.getElementById('reminder-banner')?.classList.add('active');
@@ -2667,7 +2697,7 @@ function _applySystemNotificationOnLoad() {
     if (typeof Notification === 'undefined') return;
     if (Notification.permission !== 'granted') return;
 
-    const today   = new Date().toISOString().slice(0, 10);
+    const today   = window.MF.db.localISODate();
     const hasTx   = db.transactions.some(t => t.date === today);
     if (hasTx) return;
 
@@ -2863,7 +2893,7 @@ function _openAddModal(id) {
         var idx = db2.categories.findIndex(function(c) { return c.id === id; });
         if (idx >= 0) db2.categories[idx] = Object.assign({}, db2.categories[idx], { name: name, color: color, icon: icon, updatedAt: now });
       } else {
-        db2.categories.push({ id: MF.db.generateId(), name: name, color: color, icon: icon, isCustom: true, hidden: false });
+        db2.categories.push({ id: MF.db.generateId(), name: name, color: color, icon: icon, isCustom: true, hidden: false, createdAt: now, updatedAt: now });
       }
       MF.db.saveData(db2); MF.nav.closeModal(); MF.nav.toast(id ? 'Categor\u00eda actualizada' : 'Categor\u00eda creada'); render();
     }}
@@ -2878,7 +2908,20 @@ function getCatColor(cat, db) {
   return '#7aa2f7';
 }
 
-var _catAPI = { render: render, getCatColor: getCatColor, DEFAULT_CATS: DEFAULT_CATS };
+// Nombres de categoría para los formularios: predeterminadas (menos las
+// ocultas en settings.hiddenCats) + personalizadas visibles, sin duplicados.
+function visibleCatNames(db) {
+  var hidden   = new Set((db && db.settings && db.settings.hiddenCats) || []);
+  var defaults = DEFAULT_CATS.map(function(c) { return c.name; })
+    .filter(function(n) { return !hidden.has(n); });
+  var custom = ((db && db.categories) || [])
+    .filter(function(c) { return !c.hidden; })
+    .map(function(c) { return c.name; })
+    .filter(function(n) { return !defaults.includes(n); });
+  return defaults.concat(custom);
+}
+
+var _catAPI = { render: render, getCatColor: getCatColor, visibleCatNames: visibleCatNames, DEFAULT_CATS: DEFAULT_CATS };
 if (typeof window !== 'undefined') { window.MF = window.MF || {}; window.MF.categorias = _catAPI; }
 if (typeof module !== 'undefined' && module.exports) { module.exports = _catAPI; }
 
@@ -2991,7 +3034,7 @@ function consume() {
     source:     intent.src,
     account:    resolveAccount(db),
     type:       'expense',
-    date:       new Date().toISOString().slice(0, 10),
+    date:       MF.db.localISODate(),
     modalTitle: 'Gasto desde Apple Pay'
   });
 
@@ -3343,7 +3386,7 @@ function render() {
 
   const db       = MF.db.loadData();
   const now      = new Date();
-  const month    = now.toISOString().slice(0, 7);
+  const month    = MF.db.localMonth(now);
   const cur      = (db.settings && db.settings.currency) || '$';
 
   const monthTxs = db.transactions.filter(t => t.date && t.date.startsWith(month));
@@ -3838,7 +3881,7 @@ function render() {
   const y    = now.getFullYear();
   const m    = String(now.getMonth() + 1).padStart(2, '0');
   _fromDate = y + '-' + m + '-01';
-  _toDate   = now.toISOString().slice(0, 10);
+  _toDate   = MF.db.localISODate(now);
   _query    = '';
 
   _allTxs = _db.transactions.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -3972,8 +4015,8 @@ function _renderList() {
 }
 
 function _dateLabel(isoDate) {
-  const today     = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const today     = MF.db.localISODate();
+  const yesterday = MF.db.localISODate(new Date(Date.now() - 86400000));
   if (isoDate === today)     return 'Hoy';
   if (isoDate === yesterday) return 'Ayer';
   return MF.nav.formatDate(isoDate);
@@ -3992,10 +4035,9 @@ function _openAddModal(id, prefill) {
     + MF.nav.esc(a.name) + '</option>'
   ).join('');
 
-  const today       = new Date().toISOString().slice(0, 10);
-  const defaultCats = (MF.categorias.DEFAULT_CATS || []).map(c => c.name);
-  const customCats  = (_db.categories || []).filter(c => !c.hidden).map(c => c.name);
-  const allCats     = defaultCats.concat(customCats.filter(c => !defaultCats.includes(c)));
+  const today       = MF.db.localISODate();
+  const allCats = MF.categorias.visibleCatNames(_db);
+  if (tx && tx.cat && !allCats.includes(tx.cat)) allCats.push(tx.cat);
 
   const catOptions = allCats.map(c =>
     '<option value="' + MF.nav.esc(c) + '"' + (base.cat === c ? ' selected' : '') + '>' + MF.nav.esc(c) + '</option>'
@@ -4107,7 +4149,7 @@ function render() {
   const cur = (db.settings && db.settings.currency) || '$';
 
   const now      = new Date();
-  const month    = now.toISOString().slice(0, 7);
+  const month    = MF.db.localMonth(now);
   const monthTxs = db.transactions.filter(t => t.date && t.date.startsWith(month) && t.type === 'expense');
 
   const spentByCat = {};
@@ -4204,9 +4246,8 @@ function _openAddModal(id) {
   const db     = MF.db.loadData();
   const budget = id ? db.budgets.find(b => b.id === id) : null;
 
-  const defaultCats = ['Alimentación','Transporte','Entretenimiento','Salud','Servicios','Ropa','Hogar','Educación','Otro'];
-  const customCats  = (db.categories || []).filter(c => !c.hidden).map(c => c.name);
-  const allCats     = defaultCats.concat(customCats.filter(c => !defaultCats.includes(c)));
+  const allCats = MF.categorias.visibleCatNames(db);
+  if (budget && budget.cat && !allCats.includes(budget.cat)) allCats.push(budget.cat);
   const catOptions  = allCats.map(c =>
     '<option value="' + MF.nav.esc(c) + '"' + (budget && budget.cat === c ? ' selected' : '') + '>' + MF.nav.esc(c) + '</option>'
   ).join('');
@@ -4379,7 +4420,7 @@ function _goalCardHTML(g, avgSavings, cur) {
 function _openAddModal(id) {
   var db   = MF.db.loadData();
   var goal = id ? db.goals.find(function(g) { return g.id === id; }) : null;
-  var today = new Date().toISOString().slice(0, 10);
+  var today = MF.db.localISODate();
 
   var formHTML = '<div class="form-group"><label class="form-label">Nombre</label>'
     + '<input class="form-input" id="goal-name" value="' + MF.nav.esc(goal ? goal.name : '') + '" placeholder="ej: Fondo de emergencia"></div>'
@@ -4680,7 +4721,7 @@ function _saveDebt(id) {
 
   if (id) {
     var idx = db.debts.findIndex(function(d) { return d.id === id; });
-    if (idx >= 0) db.debts[idx] = Object.assign({}, db.debts[idx], { name: name, type: type, rate: rate, total: total, remaining: remaining, monthly: monthly, color: color, updatedAt: now });
+    if (idx >= 0) db.debts[idx] = Object.assign({}, db.debts[idx], { name: name, type: type, rate: rate, total: total, remaining: Number.isFinite(remaining) ? remaining : db.debts[idx].remaining, monthly: monthly, color: color, updatedAt: now });
   } else {
     db.debts.push({ id: MF.db.generateId(), name: name, type: type, rate: rate, total: total, remaining: remaining || total, monthly: monthly, color: color, createdAt: now, updatedAt: now });
   }
@@ -4762,7 +4803,7 @@ function render() {
 
 function _openAddModal() {
   var db  = MF.db.loadData();
-  var today = new Date().toISOString().slice(0, 10);
+  var today = MF.db.localISODate();
   var accOpts = db.accounts.map(function(a) {
     return '<option value="' + MF.nav.esc(a.id) + '">' + MF.nav.esc(a.name) + '</option>';
   }).join('');
@@ -4812,7 +4853,7 @@ function render() {
   var cur = (db.settings && db.settings.currency) || '$';
 
   var today     = new Date();
-  var month     = today.toISOString().slice(0, 7);
+  var month     = MF.db.localMonth(today);
   var dayOfMonth = today.getDate();
 
   var overdueIds = new Set();
@@ -4940,7 +4981,7 @@ function render() {
   var db  = MF.db.loadData();
   var cur = (db.settings && db.settings.currency) || '$';
   var now = new Date();
-  var month = now.toISOString().slice(0, 7);
+  var month = MF.db.localMonth(now);
   var monthLabel = now.toLocaleDateString('es', { month: 'long', year: 'numeric' });
 
   var monthTxs = db.transactions.filter(function(t) { return t.date && t.date.startsWith(month); });
@@ -5161,7 +5202,7 @@ function render() {
 function _openAddModal(id) {
   var db   = MF.db.loadData();
   var inst = id ? db.installments.find(function(i) { return i.id === id; }) : null;
-  var today = new Date().toISOString().slice(0, 10);
+  var today = MF.db.localISODate();
   var cardOpts = db.cards.map(function(c) {
     return '<option value="' + MF.nav.esc(c.id) + '"' + (inst && inst.card === c.id ? ' selected' : '') + '>' + MF.nav.esc(c.name) + '</option>';
   }).join('');

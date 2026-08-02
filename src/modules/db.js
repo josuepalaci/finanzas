@@ -18,6 +18,22 @@ function generateId() {
   });
 }
 
+// ── Fechas locales ─────────────────────────────────────────────────────────
+// Las fechas de transacción son locales (input type=date). toISOString() es
+// UTC: en UTC−6, después de las 6 p.m. "hoy" ya sería mañana. Todo "hoy" o
+// "mes actual" del app debe salir de estos helpers.
+
+function localISODate(date) {
+  const d = date || new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
+
+function localMonth(date) {
+  return localISODate(date).slice(0, 7);
+}
+
 // ── DB vacía ───────────────────────────────────────────────────────────────
 
 function emptyDB() {
@@ -239,7 +255,7 @@ function generateDemoData() {
   function isoDate(daysAgo) {
     const d = new Date(now);
     d.setDate(d.getDate() - daysAgo);
-    return d.toISOString().slice(0, 10);
+    return localISODate(d);
   }
 
   function isoNow() { return now.toISOString(); }
@@ -332,6 +348,8 @@ const _dbAPI = {
   clearData,
   emptyDB,
   generateId,
+  localISODate,
+  localMonth,
   storageUsedKB,
   generateDemoData,
   migrateV1toV2

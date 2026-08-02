@@ -49,7 +49,7 @@ function render() {
 
 function _openAddModal() {
   var db  = MF.db.loadData();
-  var today = new Date().toISOString().slice(0, 10);
+  var today = MF.db.localISODate();
   var accOpts = db.accounts.map(function(a) {
     return '<option value="' + MF.nav.esc(a.id) + '">' + MF.nav.esc(a.name) + '</option>';
   }).join('');

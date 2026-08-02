@@ -27,7 +27,7 @@ function render() {
   const y    = now.getFullYear();
   const m    = String(now.getMonth() + 1).padStart(2, '0');
   _fromDate = y + '-' + m + '-01';
-  _toDate   = now.toISOString().slice(0, 10);
+  _toDate   = MF.db.localISODate(now);
   _query    = '';
 
   _allTxs = _db.transactions.slice().sort((a, b) => b.date.localeCompare(a.date));
@@ -161,8 +161,8 @@ function _renderList() {
 }
 
 function _dateLabel(isoDate) {
-  const today     = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const today     = MF.db.localISODate();
+  const yesterday = MF.db.localISODate(new Date(Date.now() - 86400000));
   if (isoDate === today)     return 'Hoy';
   if (isoDate === yesterday) return 'Ayer';
   return MF.nav.formatDate(isoDate);
@@ -181,10 +181,9 @@ function _openAddModal(id, prefill) {
     + MF.nav.esc(a.name) + '</option>'
   ).join('');
 
-  const today       = new Date().toISOString().slice(0, 10);
-  const defaultCats = (MF.categorias.DEFAULT_CATS || []).map(c => c.name);
-  const customCats  = (_db.categories || []).filter(c => !c.hidden).map(c => c.name);
-  const allCats     = defaultCats.concat(customCats.filter(c => !defaultCats.includes(c)));
+  const today       = MF.db.localISODate();
+  const allCats = MF.categorias.visibleCatNames(_db);
+  if (tx && tx.cat && !allCats.includes(tx.cat)) allCats.push(tx.cat);
 
   const catOptions = allCats.map(c =>
     '<option value="' + MF.nav.esc(c) + '"' + (base.cat === c ? ' selected' : '') + '>' + MF.nav.esc(c) + '</option>'
