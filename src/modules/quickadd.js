@@ -194,6 +194,124 @@ function _knownCat(cat, db) {
   return known.includes(cat) ? cat : DEFAULT_CAT;
 }
 
+// ── Banners del outbox ─────────────────────────────────────────────────────
+// Safari (copia auxiliar): banner con el conteo del buzón y acción de copiar.
+// App instalada: banner descartable que ofrece pegar/sincronizar.
+
+function _standalone() {
+  return !!(typeof window !== 'undefined' && window.MF && window.MF.pwa && window.MF.pwa.isInstalled());
+}
+
+function renderOutboxBanner(slot) {
+  if (!slot) return;
+  slot.textContent = '';
+  if (_standalone()) return;
+  const db = MF.db.loadData();
+  const n  = (db.quickaddOutbox || []).length;
+  if (!n) return;
+
+  slot.insertAdjacentHTML('beforeend',
+    '<div class="reminder-banner active" id="outbox-banner">'
+    + MF.icons.transferencias + ' ' + n + ' gasto' + (n !== 1 ? 's' : '')
+    + ' del atajo para tu app instalada'
+    + '<button class="btn-link" id="btn-outbox-copy">Copiar</button>'
+    + '<button class="btn-icon" id="btn-outbox-clear" style="margin-left:auto" aria-label="Vaciar">' + MF.icons.x + '</button>'
+    + '</div>');
+
+  document.getElementById('btn-outbox-copy')?.addEventListener('click', copyOutbox);
+  document.getElementById('btn-outbox-clear')?.addEventListener('click', () => {
+    MF.nav.showModal(
+      '<p style="color:var(--text2)">\u00bfVaciar el buz\u00f3n del atajo? Si a\u00fan no pegaste estos gastos en tu app instalada, dejar\u00e1n de ofrecerse para copiar (siguen guardados en esta copia).</p>',
+      'Vaciar buz\u00f3n', [
+        { label: 'Cancelar', action: MF.nav.closeModal },
+        { label: 'Vaciar', danger: true, action: () => {
+          const db2 = MF.db.loadData();
+          db2.quickaddOutbox = [];
+          MF.db.saveData(db2);
+          MF.nav.closeModal();
+          updateBanners();
+        }}
+      ]);
+  });
+}
+
+function copyOutbox() {
+  const db = MF.db.loadData();
+  const payload = buildOutboxPayload(db.quickaddOutbox || []);
+  navigator.clipboard.writeText(payload)
+    .then(() => MF.nav.toast('Copiados. Abre tu app instalada y toca Pegar.'))
+    .catch(() => MF.nav.toast('No se pudo copiar', 'error'));
+}
+
+let _syncBannerTimer = null;
+
+function renderSyncBanner(slot) {
+  if (!slot) return;
+  slot.textContent = '';
+  if (!_standalone()) return;
+
+  slot.insertAdjacentHTML('beforeend',
+    '<div class="reminder-banner active" id="sync-banner">'
+    + MF.icons.transferencias + ' \u00bfSincronizar gastos del atajo?'
+    + '<button class="btn-link" id="btn-sync-paste">Pegar</button>'
+    + '<button class="btn-icon" id="btn-sync-dismiss" style="margin-left:auto" aria-label="Cerrar">' + MF.icons.x + '</button>'
+    + '</div>');
+
+  document.getElementById('btn-sync-paste')?.addEventListener('click', () => { syncFromClipboard(); });
+  document.getElementById('btn-sync-dismiss')?.addEventListener('click', () => { slot.textContent = ''; });
+
+  clearTimeout(_syncBannerTimer);
+  _syncBannerTimer = setTimeout(() => { slot.textContent = ''; }, 15000);
+  if (_syncBannerTimer && _syncBannerTimer.unref) _syncBannerTimer.unref();
+}
+
+async function syncFromClipboard() {
+  let text = '';
+  try {
+    text = await navigator.clipboard.readText();
+  } catch (_) {
+    MF.nav.toast('No se pudo leer el portapapeles', 'error');
+    return;
+  }
+
+  const txs = parseOutboxPayload(text);
+  if (!txs) {
+    MF.nav.toast('No hay gastos del atajo en el portapapeles', 'info');
+    document.getElementById('quickadd-banner-slot')?.replaceChildren();
+    return;
+  }
+
+  const db = MF.db.loadData();
+  if (!(db.accounts || []).length) {
+    MF.nav.toast('Crea una cuenta primero', 'error');
+    MF.nav.go('cuentas');
+    return;
+  }
+
+  const res = importOutboxTxs(db, txs, resolveAccount(db));
+  MF.db.saveData(db);
+  try { await navigator.clipboard.writeText(''); } catch (_) {}
+  MF.nav.toast(res.imported + ' importado' + (res.imported !== 1 ? 's' : '')
+    + ', ' + res.skipped + ' ya exist\u00eda' + (res.skipped !== 1 ? 'n' : ''));
+  document.getElementById('quickadd-banner-slot')?.replaceChildren();
+  MF.nav.refresh();
+}
+
+// Llamado por nav en cada _showSection: refresca el banner del buzón (Safari).
+function updateBanners() {
+  renderOutboxBanner(document.getElementById('quickadd-banner-slot'));
+}
+
+// Llamado por nav.init: banner de sincronización al abrir y al volver al frente.
+function initBanners() {
+  if (!_standalone()) { updateBanners(); return; }
+  const slot = document.getElementById('quickadd-banner-slot');
+  renderSyncBanner(slot);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') renderSyncBanner(slot);
+  });
+}
+
 // ── Generación del .shortcut ───────────────────────────────────────────────
 // El plist va sin firmar: iOS solo lo importa con "Permitir atajos no
 // confiables" activado. Las instrucciones manuales son el camino de respaldo.
@@ -490,6 +608,12 @@ const _quickaddAPI = {
   parseOutboxPayload,
   addToOutbox,
   importOutboxTxs,
+  renderOutboxBanner,
+  renderSyncBanner,
+  copyOutbox,
+  syncFromClipboard,
+  updateBanners,
+  initBanners,
   isIOS,
   resolveAccount,
   consume,

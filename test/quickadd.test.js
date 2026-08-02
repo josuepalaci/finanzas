@@ -17,6 +17,8 @@ const {
   parseOutboxPayload,
   addToOutbox,
   importOutboxTxs,
+  renderOutboxBanner,
+  renderSyncBanner,
   buildShortcutPlist,
   shortcutBaseUrl,
   _normalizePath,
@@ -692,5 +694,63 @@ describe('importOutboxTxs', () => {
       const res = importOutboxTxs(db, [t1, t1], 'acc1');
       assert.deepEqual(res, { imported: 1, skipped: 1 });
     });
+  });
+});
+
+describe('banners del outbox', () => {
+  function fakeSlot() {
+    return {
+      html: '',
+      textContent: '',
+      insertAdjacentHTML(_pos, h) { this.html += h; }
+    };
+  }
+
+  function setupBanner(installed, outbox) {
+    global.window = { MF: undefined };
+    global.document = { getElementById: () => null };
+    global.MF = {
+      db:    { loadData: () => ({ quickaddOutbox: outbox || [] }) },
+      pwa:   { isInstalled: () => installed },
+      nav:   { esc: x => String(x == null ? '' : x).replace(/</g, '&lt;') },
+      icons: { transferencias: '<svg data-icon></svg>', x: '<svg data-x></svg>' }
+    };
+    global.window.MF = global.MF;
+  }
+
+  test('outbox: sin items no renderiza nada', () => {
+    setupBanner(false, []);
+    const slot = fakeSlot();
+    renderOutboxBanner(slot);
+    assert.equal(slot.html, '');
+  });
+
+  test('outbox: en la app instalada no renderiza aunque haya items', () => {
+    setupBanner(true, [{ id: 'u1' }, { id: 'u2' }]);
+    const slot = fakeSlot();
+    renderOutboxBanner(slot);
+    assert.equal(slot.html, '');
+  });
+
+  test('outbox: con items muestra conteo, Copiar y Vaciar', () => {
+    setupBanner(false, [{ id: 'u1' }, { id: 'u2' }]);
+    const slot = fakeSlot();
+    renderOutboxBanner(slot);
+    assert.ok(slot.html.includes('2 gastos'));
+    assert.ok(slot.html.includes('btn-outbox-copy'));
+    assert.ok(slot.html.includes('btn-outbox-clear'));
+  });
+
+  test('sync: solo aparece en la app instalada', () => {
+    setupBanner(false, []);
+    let slot = fakeSlot();
+    renderSyncBanner(slot);
+    assert.equal(slot.html, '');
+
+    setupBanner(true, []);
+    slot = fakeSlot();
+    renderSyncBanner(slot);
+    assert.ok(slot.html.includes('btn-sync-paste'));
+    assert.ok(slot.html.includes('btn-sync-dismiss'));
   });
 });

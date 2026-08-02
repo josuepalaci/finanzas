@@ -44,6 +44,7 @@ function init() {
   _initModal();
   _initGlobalKeys();
   _initBackButton();
+  window.MF.quickadd?.initBanners?.();
   _checkReminderBanner();
   _applySystemNotificationOnLoad();
   // Va al final: necesita el router montado y puede abrir un modal encima.
@@ -191,6 +192,8 @@ function _showSection(section) {
   _fabAction = null;
 
   window.MF[section]?.render?.();
+
+  window.MF.quickadd?.updateBanners?.();
 
   _currentSection = section;
 }
