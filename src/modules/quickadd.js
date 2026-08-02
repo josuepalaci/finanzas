@@ -51,6 +51,35 @@ function parseOutboxPayload(str) {
   return out.length ? out : null;
 }
 
+function addToOutbox(db, tx) {
+  if (!db || !tx) return;
+  db.quickaddOutbox = db.quickaddOutbox || [];
+  const copia = { ...tx };
+  delete copia.account;
+  db.quickaddOutbox.push(copia);
+  if (db.quickaddOutbox.length > OUTBOX_MAX) {
+    db.quickaddOutbox = db.quickaddOutbox.slice(-OUTBOX_MAX);
+  }
+}
+
+function importOutboxTxs(db, txs, accountId) {
+  let imported = 0;
+  let skipped  = 0;
+  const existing = new Set((db.transactions || []).map(t => t.id));
+  const now = new Date().toISOString();
+
+  for (const t of (txs || [])) {
+    if (existing.has(t.id)) { skipped++; continue; }
+    const tx = { ...t, account: accountId || '',
+                 createdAt: t.createdAt || now, updatedAt: t.updatedAt || now };
+    window.MF.db.applyTxEffect(db, null, tx);
+    db.transactions.push(tx);
+    existing.add(tx.id);
+    imported++;
+  }
+  return { imported, skipped };
+}
+
 // ── isQuickAddHash ─────────────────────────────────────────────────────────
 // Separa "este hash no era para mí" de "venía dirigido a mí pero con datos
 // inválidos". El segundo caso merece un aviso al usuario; el primero, silencio.
@@ -459,6 +488,8 @@ const _quickaddAPI = {
   isQuickAddHash,
   buildOutboxPayload,
   parseOutboxPayload,
+  addToOutbox,
+  importOutboxTxs,
   isIOS,
   resolveAccount,
   consume,

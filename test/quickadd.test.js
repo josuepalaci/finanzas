@@ -15,6 +15,8 @@ const {
   DEFAULT_SHORTCUT_URL,
   buildOutboxPayload,
   parseOutboxPayload,
+  addToOutbox,
+  importOutboxTxs,
   buildShortcutPlist,
   shortcutBaseUrl,
   _normalizePath,
@@ -625,5 +627,70 @@ describe('buildOutboxPayload / parseOutboxPayload', () => {
   test('parse trunca descripciones a 120', () => {
     const payload = 'MFSYNC1:' + JSON.stringify([Object.assign({}, tx, { account: undefined, desc: 'x'.repeat(200) })]);
     assert.equal(parseOutboxPayload(payload)[0].desc.length, 120);
+  });
+});
+
+describe('addToOutbox', () => {
+  test('agrega una copia sin cuenta y crea el array si falta', () => {
+    const db = {};
+    addToOutbox(db, { id: 'u1', desc: 'Super', amount: 10, account: 'acc1', type: 'expense', date: '2026-08-02' });
+    assert.equal(db.quickaddOutbox.length, 1);
+    assert.equal(db.quickaddOutbox[0].account, undefined);
+    assert.equal(db.quickaddOutbox[0].id, 'u1');
+  });
+
+  test('recorta el buzón a 100', () => {
+    const db = { quickaddOutbox: Array.from({ length: 100 }, (_, i) => ({ id: 'u' + i })) };
+    addToOutbox(db, { id: 'nuevo' });
+    assert.equal(db.quickaddOutbox.length, 100);
+    assert.equal(db.quickaddOutbox[99].id, 'nuevo');
+  });
+});
+
+describe('importOutboxTxs', () => {
+  const realDb = require('../src/modules/db');
+
+  function baseDB() {
+    return {
+      accounts: [{ id: 'acc1', name: 'Corriente', balance: 1000 }],
+      transactions: []
+    };
+  }
+  const t1 = { id: 'u1', desc: 'Super', amount: 100, cat: 'Apple Pay', date: '2026-08-02',
+               note: '', type: 'expense', source: 'applepay', createdAt: 'c', updatedAt: 'c' };
+
+  function withRealEffects(fn) {
+    const prev = global.window.MF;
+    global.window.MF = { db: { applyTxEffect: realDb.applyTxEffect } };
+    try { fn(); } finally { global.window.MF = prev; }
+  }
+
+  test('importa asignando cuenta y ajustando el saldo', () => {
+    withRealEffects(() => {
+      const db = baseDB();
+      const res = importOutboxTxs(db, [t1], 'acc1');
+      assert.deepEqual(res, { imported: 1, skipped: 0 });
+      assert.equal(db.transactions[0].account, 'acc1');
+      assert.equal(db.accounts[0].balance, 900);
+    });
+  });
+
+  test('dedup por id: los existentes se omiten sin tocar el saldo', () => {
+    withRealEffects(() => {
+      const db = baseDB();
+      db.transactions.push({ ...t1, account: 'acc1' });
+      const res = importOutboxTxs(db, [t1, { ...t1, id: 'u2' }], 'acc1');
+      assert.deepEqual(res, { imported: 1, skipped: 1 });
+      assert.equal(db.accounts[0].balance, 900);
+      assert.equal(db.transactions.length, 2);
+    });
+  });
+
+  test('ids repetidos dentro del mismo payload solo importan una vez', () => {
+    withRealEffects(() => {
+      const db = baseDB();
+      const res = importOutboxTxs(db, [t1, t1], 'acc1');
+      assert.deepEqual(res, { imported: 1, skipped: 1 });
+    });
   });
 });
