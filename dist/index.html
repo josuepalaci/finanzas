@@ -1322,6 +1322,9 @@ canvas { max-width: 100%; }
       <button class="btn-icon" id="banner-dismiss" style="margin-left:auto" aria-label="Cerrar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6M6 6L18 18" /></svg></button>
     </div>
 
+    <!-- Outbox del atajo (Safari) / sincronización (app instalada) -->
+    <div id="quickadd-banner-slot"></div>
+
     <!-- ── Views ─────────────────────────────────────── -->
     <section class="view active" id="view-dashboard"     data-view="dashboard"></section>
     <section class="view"        id="view-cuentas"       data-view="cuentas"></section>
@@ -1554,6 +1557,7 @@ function emptyDB() {
     transfers:    [],
     installments: [],
     categories:   [],
+    quickaddOutbox: [],
     settings: {
       theme: 'dark',
       currency: '$',
@@ -2415,6 +2419,7 @@ function init() {
   _initModal();
   _initGlobalKeys();
   _initBackButton();
+  window.MF.quickadd?.initBanners?.();
   _checkReminderBanner();
   _applySystemNotificationOnLoad();
   // Va al final: necesita el router montado y puede abrir un modal encima.
@@ -2562,6 +2567,8 @@ function _showSection(section) {
   _fabAction = null;
 
   window.MF[section]?.render?.();
+
+  window.MF.quickadd?.updateBanners?.();
 
   _currentSection = section;
 }
@@ -3044,6 +3051,80 @@ const DEFAULT_CAT      = 'Apple Pay';
 const DEFAULT_SOURCE   = 'applepay';
 const MAX_DESC         = 120;
 
+// ── Outbox: Safari → portapapeles → PWA instalada ─────────────────────────
+// La copia de Safari es un buzón: las transacciones del atajo se acumulan en
+// db.quickaddOutbox y viajan a la app instalada por el portapapeles, con
+// dedup por UUID en el destino. El payload nunca lleva la cuenta: los UUID de
+// cuenta difieren entre copias.
+const OUTBOX_PREFIX = 'MFSYNC1:';
+const OUTBOX_MAX    = 100;
+
+function buildOutboxPayload(txs) {
+  const items = (txs || []).slice(-OUTBOX_MAX).map(t => ({
+    id: t.id, desc: t.desc, amount: t.amount, cat: t.cat || '', date: t.date,
+    note: t.note || '', type: t.type, source: t.source || '',
+    createdAt: t.createdAt || '', updatedAt: t.updatedAt || ''
+  }));
+  return OUTBOX_PREFIX + JSON.stringify(items);
+}
+
+// El portapapeles es entrada no confiable: aquí vive TODA la validación.
+function parseOutboxPayload(str) {
+  if (typeof str !== 'string' || !str.startsWith(OUTBOX_PREFIX)) return null;
+  let arr;
+  try { arr = JSON.parse(str.slice(OUTBOX_PREFIX.length)); } catch (_) { return null; }
+  if (!Array.isArray(arr)) return null;
+
+  const out = [];
+  for (const t of arr.slice(0, OUTBOX_MAX)) {
+    if (!t || typeof t !== 'object') continue;
+    const id     = typeof t.id === 'string' ? t.id.trim() : '';
+    const desc   = typeof t.desc === 'string' ? t.desc.trim().slice(0, MAX_DESC) : '';
+    const amount = t.amount;
+    const type   = t.type === 'income' || t.type === 'expense' ? t.type : '';
+    const date   = typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : '';
+    if (!id || !desc || !Number.isFinite(amount) || amount <= 0 || !type || !date) continue;
+    out.push({
+      id, desc, amount, type, date,
+      cat:       typeof t.cat === 'string' ? t.cat.slice(0, 40) : '',
+      note:      typeof t.note === 'string' ? t.note.slice(0, 500) : '',
+      source:    typeof t.source === 'string' ? t.source.slice(0, 20) : '',
+      createdAt: typeof t.createdAt === 'string' ? t.createdAt : '',
+      updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : ''
+    });
+  }
+  return out.length ? out : null;
+}
+
+function addToOutbox(db, tx) {
+  if (!db || !tx) return;
+  db.quickaddOutbox = db.quickaddOutbox || [];
+  const copia = { ...tx };
+  delete copia.account;
+  db.quickaddOutbox.push(copia);
+  if (db.quickaddOutbox.length > OUTBOX_MAX) {
+    db.quickaddOutbox = db.quickaddOutbox.slice(-OUTBOX_MAX);
+  }
+}
+
+function importOutboxTxs(db, txs, accountId) {
+  let imported = 0;
+  let skipped  = 0;
+  const existing = new Set((db.transactions || []).map(t => t.id));
+  const now = new Date().toISOString();
+
+  for (const t of (txs || [])) {
+    if (existing.has(t.id)) { skipped++; continue; }
+    const tx = { ...t, account: accountId || '',
+                 createdAt: t.createdAt || now, updatedAt: t.updatedAt || now };
+    window.MF.db.applyTxEffect(db, null, tx);
+    db.transactions.push(tx);
+    existing.add(tx.id);
+    imported++;
+  }
+  return { imported, skipped };
+}
+
 // ── isQuickAddHash ─────────────────────────────────────────────────────────
 // Separa "este hash no era para mí" de "venía dirigido a mí pero con datos
 // inválidos". El segundo caso merece un aviso al usuario; el primero, silencio.
@@ -3156,6 +3237,124 @@ function _knownCat(cat, db) {
   const known = ((MF.categorias && MF.categorias.DEFAULT_CATS) || []).map(c => c.name)
     .concat((db.categories || []).map(c => c.name));
   return known.includes(cat) ? cat : DEFAULT_CAT;
+}
+
+// ── Banners del outbox ─────────────────────────────────────────────────────
+// Safari (copia auxiliar): banner con el conteo del buzón y acción de copiar.
+// App instalada: banner descartable que ofrece pegar/sincronizar.
+
+function _standalone() {
+  return !!(typeof window !== 'undefined' && window.MF && window.MF.pwa && window.MF.pwa.isInstalled());
+}
+
+function renderOutboxBanner(slot) {
+  if (!slot) return;
+  slot.textContent = '';
+  if (_standalone()) return;
+  const db = MF.db.loadData();
+  const n  = (db.quickaddOutbox || []).length;
+  if (!n) return;
+
+  slot.insertAdjacentHTML('beforeend',
+    '<div class="reminder-banner active" id="outbox-banner">'
+    + MF.icons.transferencias + ' ' + n + ' gasto' + (n !== 1 ? 's' : '')
+    + ' del atajo para tu app instalada'
+    + '<button class="btn-link" id="btn-outbox-copy">Copiar</button>'
+    + '<button class="btn-icon" id="btn-outbox-clear" style="margin-left:auto" aria-label="Vaciar">' + MF.icons.x + '</button>'
+    + '</div>');
+
+  document.getElementById('btn-outbox-copy')?.addEventListener('click', copyOutbox);
+  document.getElementById('btn-outbox-clear')?.addEventListener('click', () => {
+    MF.nav.showModal(
+      '<p style="color:var(--text2)">\u00bfVaciar el buz\u00f3n del atajo? Si a\u00fan no pegaste estos gastos en tu app instalada, dejar\u00e1n de ofrecerse para copiar (siguen guardados en esta copia).</p>',
+      'Vaciar buz\u00f3n', [
+        { label: 'Cancelar', action: MF.nav.closeModal },
+        { label: 'Vaciar', danger: true, action: () => {
+          const db2 = MF.db.loadData();
+          db2.quickaddOutbox = [];
+          MF.db.saveData(db2);
+          MF.nav.closeModal();
+          updateBanners();
+        }}
+      ]);
+  });
+}
+
+function copyOutbox() {
+  const db = MF.db.loadData();
+  const payload = buildOutboxPayload(db.quickaddOutbox || []);
+  navigator.clipboard.writeText(payload)
+    .then(() => MF.nav.toast('Copiados. Abre tu app instalada y toca Pegar.'))
+    .catch(() => MF.nav.toast('No se pudo copiar', 'error'));
+}
+
+let _syncBannerTimer = null;
+
+function renderSyncBanner(slot) {
+  if (!slot) return;
+  slot.textContent = '';
+  if (!_standalone()) return;
+
+  slot.insertAdjacentHTML('beforeend',
+    '<div class="reminder-banner active" id="sync-banner">'
+    + MF.icons.transferencias + ' \u00bfSincronizar gastos del atajo?'
+    + '<button class="btn-link" id="btn-sync-paste">Pegar</button>'
+    + '<button class="btn-icon" id="btn-sync-dismiss" style="margin-left:auto" aria-label="Cerrar">' + MF.icons.x + '</button>'
+    + '</div>');
+
+  document.getElementById('btn-sync-paste')?.addEventListener('click', () => { syncFromClipboard(); });
+  document.getElementById('btn-sync-dismiss')?.addEventListener('click', () => { slot.textContent = ''; });
+
+  clearTimeout(_syncBannerTimer);
+  _syncBannerTimer = setTimeout(() => { slot.textContent = ''; }, 15000);
+  if (_syncBannerTimer && _syncBannerTimer.unref) _syncBannerTimer.unref();
+}
+
+async function syncFromClipboard() {
+  let text = '';
+  try {
+    text = await navigator.clipboard.readText();
+  } catch (_) {
+    MF.nav.toast('No se pudo leer el portapapeles', 'error');
+    return;
+  }
+
+  const txs = parseOutboxPayload(text);
+  if (!txs) {
+    MF.nav.toast('No hay gastos del atajo en el portapapeles', 'info');
+    document.getElementById('quickadd-banner-slot')?.replaceChildren();
+    return;
+  }
+
+  const db = MF.db.loadData();
+  if (!(db.accounts || []).length) {
+    MF.nav.toast('Crea una cuenta primero', 'error');
+    MF.nav.go('cuentas');
+    return;
+  }
+
+  const res = importOutboxTxs(db, txs, resolveAccount(db));
+  MF.db.saveData(db);
+  try { await navigator.clipboard.writeText(''); } catch (_) {}
+  MF.nav.toast(res.imported + ' importado' + (res.imported !== 1 ? 's' : '')
+    + ', ' + res.skipped + ' ya exist\u00eda' + (res.skipped !== 1 ? 'n' : ''));
+  document.getElementById('quickadd-banner-slot')?.replaceChildren();
+  MF.nav.refresh();
+}
+
+// Llamado por nav en cada _showSection: refresca el banner del buzón (Safari).
+function updateBanners() {
+  renderOutboxBanner(document.getElementById('quickadd-banner-slot'));
+}
+
+// Llamado por nav.init: banner de sincronización al abrir y al volver al frente.
+function initBanners() {
+  if (!_standalone()) { updateBanners(); return; }
+  const slot = document.getElementById('quickadd-banner-slot');
+  renderSyncBanner(slot);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') renderSyncBanner(slot);
+  });
 }
 
 // ── Generación del .shortcut ───────────────────────────────────────────────
@@ -3310,6 +3509,14 @@ const _PASOS = [
   'Ya creado: mantén pulsado el atajo → <strong>Compartir</strong> → <strong>Copiar enlace de iCloud</strong>, y pega ese enlace aquí abajo.'
 ];
 
+// Enlace oficial del atajo, firmado por Apple (compartido vía iCloud). Se usa
+// cuando el usuario no ha guardado uno propio; así la card instala de un toque.
+const DEFAULT_SHORTCUT_URL = 'https://www.icloud.com/shortcuts/7e803a7501594afea8a98e4207dad40b';
+
+function resolveShortcutLink(saved) {
+  return normalizeShortcutLink(saved) || DEFAULT_SHORTCUT_URL;
+}
+
 // Solo aceptamos enlaces de iCloud: son los únicos que Apple firma, y evita que
 // un valor arbitrario acabe en un window.open.
 function normalizeShortcutLink(raw) {
@@ -3330,7 +3537,7 @@ function renderInstallCard(slot) {
   const db       = MF.db.loadData();
   const accounts = db.accounts || [];
   const current  = (db.settings && db.settings.applePayAccount) || '';
-  const enlace   = normalizeShortcutLink(db.settings && db.settings.applePayShortcutUrl);
+  const propio   = normalizeShortcutLink(db.settings && db.settings.applePayShortcutUrl);
 
   const accOptions = accounts.length
     ? accounts.map(a =>
@@ -3357,24 +3564,23 @@ function renderInstallCard(slot) {
     + '<div class="form-group"><label class="form-label">Cuenta destino</label>'
     + '<select class="form-select" id="quickadd-account"' + (accounts.length ? '' : ' disabled') + '>'
     + accOptions + '</select></div>'
-    + (enlace
-      ? '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
-        + '<button class="btn btn-primary" id="btn-install-shortcut">Instalar atajo</button>'
-        + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button>'
-        + '<button class="btn btn-ghost" id="btn-forget-shortcut-link">Olvidar enlace</button>'
-        + '</div>'
-      : '<p style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.5">'
-        + 'iOS solo instala atajos <strong>firmados por Apple</strong>, y la firma se genera en '
-        + 'sus servidores. Créalo una vez a mano y compártelo como enlace de iCloud: ese enlace '
-        + 'queda firmado y luego se instala de un toque, aquí y en cualquier iPhone.</p>'
-        + '<ol style="font-size:12px;color:var(--text2);margin:12px 0 0 18px;line-height:1.5">'
-        + pasosHTML + '</ol>'
-        + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
-        + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button></div>'
-        + '<div class="form-group" style="margin-top:12px"><label class="form-label">Enlace de iCloud del atajo</label>'
-        + '<input class="form-input" id="quickadd-link" inputmode="url" autocapitalize="off" '
-        + 'autocorrect="off" spellcheck="false" placeholder="https://www.icloud.com/shortcuts/…"></div>'
-        + '<button class="btn btn-primary" id="btn-save-shortcut-link">Guardar enlace</button>')
+    + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
+    + '<button class="btn btn-primary" id="btn-install-shortcut">Instalar atajo</button>'
+    + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button>'
+    + (propio ? '<button class="btn btn-ghost" id="btn-forget-shortcut-link">Olvidar enlace</button>' : '')
+    + '</div>'
+    + '<details style="margin-top:12px">'
+    + '<summary style="cursor:pointer;font-size:13px;color:var(--accent)">Usar mi propio atajo</summary>'
+    + '<p style="font-size:12px;color:var(--text2);margin:12px 0 0;line-height:1.5">'
+    + 'iOS solo instala atajos <strong>firmados por Apple</strong>. Puedes crear el tuyo a mano y '
+    + 'compartirlo como enlace de iCloud: ese enlace queda firmado y se instala de un toque.</p>'
+    + '<ol style="font-size:12px;color:var(--text2);margin:12px 0 0 18px;line-height:1.5">'
+    + pasosHTML + '</ol>'
+    + '<div class="form-group" style="margin-top:12px"><label class="form-label">Enlace de iCloud del atajo</label>'
+    + '<input class="form-input" id="quickadd-link" inputmode="url" autocapitalize="off" '
+    + 'autocorrect="off" spellcheck="false" placeholder="https://www.icloud.com/shortcuts/…"></div>'
+    + '<button class="btn btn-primary" id="btn-save-shortcut-link" style="margin-top:8px">Guardar enlace</button>'
+    + '</details>'
     + aviso
     + '<details style="margin-top:12px">'
     + '<summary style="cursor:pointer;font-size:13px;color:var(--accent)">Opciones avanzadas</summary>'
@@ -3403,8 +3609,7 @@ function renderInstallCard(slot) {
   document.getElementById('btn-install-shortcut')?.addEventListener('click', () => {
     // Se relee de la DB en vez de cerrar sobre el valor: así el enlace vuelve a
     // pasar por la validación justo antes de abrirlo.
-    const destino = normalizeShortcutLink(MF.db.loadData().settings?.applePayShortcutUrl);
-    if (!destino) { MF.nav.toast('El enlace guardado ya no es válido', 'error'); return; }
+    const destino = resolveShortcutLink(MF.db.loadData().settings?.applePayShortcutUrl);
     window.open(destino, '_blank', 'noopener');
   });
 
@@ -3444,6 +3649,16 @@ function renderInstallCard(slot) {
 const _quickaddAPI = {
   parseIntent,
   isQuickAddHash,
+  buildOutboxPayload,
+  parseOutboxPayload,
+  addToOutbox,
+  importOutboxTxs,
+  renderOutboxBanner,
+  renderSyncBanner,
+  copyOutbox,
+  syncFromClipboard,
+  updateBanners,
+  initBanners,
   isIOS,
   resolveAccount,
   consume,
@@ -3453,6 +3668,8 @@ const _quickaddAPI = {
   downloadShortcut,
   renderInstallCard,
   normalizeShortcutLink,
+  resolveShortcutLink,
+  DEFAULT_SHORTCUT_URL,
   PASOS_MANUALES: _PASOS,
   QUICKADD_SECTION,
   DEFAULT_CAT,
@@ -4215,6 +4432,11 @@ function _saveTx(id) {
     const newTx = { id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now };
     MF.db.applyTxEffect(db, null, newTx);
     db.transactions.push(newTx);
+    // Vía atajo fuera de la app instalada: la copia de Safari es un buzón; la
+    // tx se encola para pasarla a la app instalada por el portapapeles.
+    if (source && !(window.MF.pwa && window.MF.pwa.isInstalled())) {
+      MF.quickadd.addToOutbox(db, newTx);
+    }
   }
 
   MF.db.saveData(db);

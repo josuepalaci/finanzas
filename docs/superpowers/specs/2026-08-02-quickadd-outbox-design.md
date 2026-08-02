@@ -1,7 +1,7 @@
 # Outbox del atajo: sincronizar gastos de Safari a la PWA instalada
 
 **Fecha:** 2026-08-02
-**Estado:** Aprobado
+**Estado:** Implementado (2026-08-02)
 **Módulo afectado principal:** `src/modules/quickadd.js`
 **Módulos afectados:** `db.js`, `gastos.js`, `nav.js`, `src/index.html`, `src/styles/components.css`
 

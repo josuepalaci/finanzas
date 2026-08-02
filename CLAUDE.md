@@ -67,7 +67,7 @@ Export JSON completo / import incremental con preview: por colección, merge por
 
 ### Quick add desde iOS (quickadd.js)
 
-Ruta de cliente `#quick-add?desc=…&amount=…` (hash, no query string — el SW haría cache-miss con query) que abre el modal de gastos pre-llenado vía `MF.gastos.openAddModal(null, prefill)`. El módulo también genera un `.shortcut` (plist XML) para el atajo de iOS "pagar con Apple Pay → registrar gasto". **iOS solo instala atajos firmados por Apple**: la vía principal es el enlace de iCloud guardado en `settings.applePayShortcutUrl`; el plist sin firmar se firma en Mac con `shortcuts sign -m anyone -i in.shortcut -o out.shortcut`. Spec completo: `docs/superpowers/specs/2026-07-28-quick-add-applepay-design.md`.
+Ruta de cliente `#quick-add?desc=…&amount=…` (hash, no query string — el SW haría cache-miss con query) que abre el modal de gastos pre-llenado vía `MF.gastos.openAddModal(null, prefill)`. El módulo también genera un `.shortcut` (plist XML) para el atajo de iOS "pagar con Apple Pay → registrar gasto". **iOS solo instala atajos firmados por Apple**: la vía principal es el enlace de iCloud guardado en `settings.applePayShortcutUrl`; el plist sin firmar se firma en Mac con `shortcuts sign -m anyone -i in.shortcut -o out.shortcut`. El **outbox** cubre la partición de almacenamiento Safari/PWA instalada: las tx del atajo se acumulan en `db.quickaddOutbox` (solo fuera de standalone), un banner las copia como `MFSYNC1:` + JSON al portapapeles, y la app instalada las importa con dedup por UUID (`parseOutboxPayload`/`importOutboxTxs`) asignándolas a la cuenta configurada. Specs: `docs/superpowers/specs/2026-07-28-quick-add-applepay-design.md` y `2026-08-02-quickadd-outbox-design.md`.
 
 ### Estilos
 
