@@ -38,6 +38,7 @@ function render() {
       + '</div>'
       + '<div class="list-item__amount">' + MF.nav.esc(MF.nav.formatCurrency(r.amount, cur)) + '/mes</div>'
       + '<div class="list-item__actions">'
+      + (overdue ? '<button class="btn-icon" data-action="reg-rec" data-id="' + MF.nav.esc(r.id) + '" title="Registrar ahora">' + MF.icons.plus + '</button>' : '')
       + '<button class="btn-icon" data-action="edit-rec" data-id="' + MF.nav.esc(r.id) + '">' + MF.icons.pencil + '</button>'
       + '<button class="btn-icon" data-action="del-rec"  data-id="' + MF.nav.esc(r.id) + '">' + MF.icons.trash + '</button>'
       + '</div></div>';
@@ -54,6 +55,24 @@ function render() {
     if (!btn) return;
     if (btn.dataset.action === 'edit-rec') _openAddModal(btn.dataset.id);
     else if (btn.dataset.action === 'del-rec') _deleteRec(btn.dataset.id);
+    else if (btn.dataset.action === 'reg-rec') _registerNow(btn.dataset.id);
+  });
+}
+
+// Abre el modal de gasto pre-llenado con los datos del recurrente (mismo
+// patrón que quickadd); al guardar pasa por la validación y efectos normales.
+function _registerNow(id) {
+  var db  = MF.db.loadData();
+  var rec = db.recurring.find(function(r) { return r.id === id; });
+  if (!rec) return;
+  MF.gastos.openAddModal(null, {
+    desc:       rec.desc,
+    amount:     rec.amount,
+    cat:        rec.cat,
+    account:    rec.account,
+    type:       'expense',
+    date:       MF.db.localISODate(),
+    modalTitle: 'Registrar recurrente'
   });
 }
 
@@ -72,11 +91,11 @@ function _openAddModal(id) {
     + '<input class="form-input" id="rec-desc" value="' + MF.nav.esc(rec ? rec.desc : '') + '" placeholder="ej: Netflix"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label><select class="form-select" id="rec-cat">' + catOpts + '</select></div>'
-    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="rec-amount" type="number" step="0.01" min="0" value="' + (rec ? rec.amount : '') + '"></div>'
+    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="rec-amount" type="number" inputmode="decimal" step="0.01" min="0" value="' + (rec ? rec.amount : '') + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Cuenta</label><select class="form-select" id="rec-account">' + accOpts + '</select></div>'
-    + '<div class="form-group"><label class="form-label">D\u00eda del mes</label><input class="form-input" id="rec-day" type="number" min="1" max="31" value="' + (rec ? rec.day : 1) + '"></div>'
+    + '<div class="form-group"><label class="form-label">D\u00eda del mes</label><input class="form-input" id="rec-day" type="number" inputmode="numeric" min="1" max="31" value="' + (rec ? rec.day : 1) + '"></div>'
     + '</div>';
 
   MF.nav.showModal(formHTML, rec ? 'Editar recurrente' : 'Nuevo recurrente', [

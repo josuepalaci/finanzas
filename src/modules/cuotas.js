@@ -60,15 +60,63 @@ function render() {
         }}
       ]);
     } else if (action === 'pay-inst') {
-      var db2 = MF.db.loadData();
-      var idx = db2.installments.findIndex(function(i) { return i.id === id; });
-      if (idx >= 0 && db2.installments[idx].paid < db2.installments[idx].cuotas) {
-        db2.installments[idx].paid += 1;
-        db2.installments[idx].updatedAt = new Date().toISOString();
-        MF.db.saveData(db2); MF.nav.toast('Cuota pagada'); render();
-      }
+      _openPayModal(id);
     }
   });
+}
+
+function _openPayModal(id) {
+  var db   = MF.db.loadData();
+  var inst = db.installments.find(function(i) { return i.id === id; });
+  if (!inst || inst.paid >= inst.cuotas) return;
+
+  var cur    = (db.settings && db.settings.currency) || '$';
+  var amount = inst.cuotaAmt || 0;
+  var accOpts = db.accounts.map(function(a) {
+    return '<option value="' + MF.nav.esc(a.id) + '">' + MF.nav.esc(a.name) + '</option>';
+  }).join('');
+
+  var formHTML = '<p style="color:var(--text2);margin-bottom:12px"><strong>' + MF.nav.esc(inst.desc) + '</strong>'
+    + ' \u2014 cuota ' + (inst.paid + 1) + ' de ' + inst.cuotas + '</p>'
+    + '<p style="font-size:13px;color:var(--text3);margin-bottom:12px">Monto: ' + MF.nav.esc(MF.nav.formatCurrency(amount, cur)) + '</p>'
+    + (accOpts
+      ? '<div class="form-group"><label class="form-label">Cuenta de pago</label>'
+        + '<select class="form-select" id="inst-pay-account">' + accOpts + '</select></div>'
+        + '<p style="font-size:11px;color:var(--text3)">Se registra como gasto en Deudas y baja el saldo de la tarjeta.</p>'
+      : '');
+
+  MF.nav.showModal(formHTML, 'Pagar cuota', [
+    { label: 'Cancelar', action: MF.nav.closeModal },
+    { label: 'Registrar pago', primary: true, action: function() {
+      var db2 = MF.db.loadData();
+      var idx = db2.installments.findIndex(function(i) { return i.id === id; });
+      if (idx < 0 || db2.installments[idx].paid >= db2.installments[idx].cuotas) { MF.nav.closeModal(); return; }
+      var now = new Date().toISOString();
+      db2.installments[idx].paid += 1;
+      db2.installments[idx].updatedAt = now;
+
+      var cardIdx = db2.cards.findIndex(function(c) { return c.id === db2.installments[idx].card; });
+      if (cardIdx >= 0) {
+        db2.cards[cardIdx].balance = Math.max((db2.cards[cardIdx].balance || 0) - amount, 0);
+        db2.cards[cardIdx].updatedAt = now;
+      }
+
+      var account = (document.getElementById('inst-pay-account') || {}).value || '';
+      if (account && amount > 0) {
+        var tx = { id: MF.db.generateId(),
+                   desc: 'Cuota ' + inst.desc + ' (' + db2.installments[idx].paid + '/' + inst.cuotas + ')',
+                   cat: 'Deudas', amount: amount, account: account, type: 'expense', note: '',
+                   date: MF.db.localISODate(), createdAt: now, updatedAt: now };
+        MF.db.applyTxEffect(db2, null, tx);
+        db2.transactions.push(tx);
+      }
+
+      MF.db.saveData(db2);
+      MF.nav.closeModal();
+      MF.nav.toast('Cuota pagada');
+      render();
+    }}
+  ]);
 }
 
 function _openAddModal(id) {
@@ -90,11 +138,11 @@ function _openAddModal(id) {
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label><select class="form-select" id="inst-cat">' + catOpts + '</select></div>'
     + '</div>'
     + '<div class="form-row">'
-    + '<div class="form-group"><label class="form-label">Total</label><input class="form-input" id="inst-total" type="number" step="0.01" min="0" value="' + (inst ? inst.total : '') + '"></div>'
-    + '<div class="form-group"><label class="form-label">N\u00famero de cuotas</label><input class="form-input" id="inst-cuotas" type="number" min="1" value="' + (inst ? inst.cuotas : 12) + '"></div>'
+    + '<div class="form-group"><label class="form-label">Total</label><input class="form-input" id="inst-total" type="number" inputmode="decimal" step="0.01" min="0" value="' + (inst ? inst.total : '') + '"></div>'
+    + '<div class="form-group"><label class="form-label">N\u00famero de cuotas</label><input class="form-input" id="inst-cuotas" type="number" inputmode="numeric" min="1" value="' + (inst ? inst.cuotas : 12) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
-    + '<div class="form-group"><label class="form-label">Cuotas pagadas</label><input class="form-input" id="inst-paid" type="number" min="0" value="' + (inst ? inst.paid : 0) + '"></div>'
+    + '<div class="form-group"><label class="form-label">Cuotas pagadas</label><input class="form-input" id="inst-paid" type="number" inputmode="numeric" min="0" value="' + (inst ? inst.paid : 0) + '"></div>'
     + '<div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" id="inst-start" type="date" value="' + MF.nav.esc(inst ? inst.startDate : today) + '"></div>'
     + '</div>';
 

@@ -21,7 +21,7 @@ Una aplicación PWA minimalista y potente para gestionar tus finanzas personales
 - **Tendencias de gasto** - análisis de 6 meses por categoría
 - **Evolución del patrimonio** - gráfica histórica de tu balance
 - **Puntaje de Salud Financiera** (0-100) basado en 4 factores clave
-- **Reportes detallados** por período (diario, mensual, anual)
+- **Reporte mensual detallado** con top de categorías y tendencias de 6 meses
 - **Export a CSV** para análisis en Excel
 
 ### 🎯 Planificación Financiera
@@ -33,7 +33,7 @@ Una aplicación PWA minimalista y potente para gestionar tus finanzas personales
 ### 🔧 Configuración Avanzada
 - **Múltiples cuentas** independientes
 - **Categorías personalizables** con iconos propios
-- **Información de salario** para cálculos de proyección
+- **Calculadora Salarial de El Salvador** (ISR/ISSS/AFP 2025, mensual/quincenal y modo prestador de servicios)
 - **Datos de prueba** precargados para explorar
 - **Reset completo** cuando lo necesites
 - **Dark/Light mode** con detección automática
@@ -111,7 +111,7 @@ src/
 │   ├── recurrentes.js     # Transacciones recurrentes
 │   ├── cuotas.js          # Seguimiento de cuotas
 │   ├── reporte.js         # Reportes y exportación
-│   ├── salario.js         # Datos de salario
+│   ├── salario.js         # Calculadora salarial SV
 │   ├── configuracion.js   # Ajustes de usuario
 │   ├── nav.js             # Navegación (mobile + desktop)
 │   ├── pwa.js             # Funcionalidades PWA

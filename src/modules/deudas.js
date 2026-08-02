@@ -96,7 +96,7 @@ function _openSimulatorModal(id) {
   var formHTML = '<p style="color:var(--text2);margin-bottom:12px">Deuda: <strong>' + MF.nav.esc(debt.name) + '</strong></p>'
     + '<p style="font-size:13px;color:var(--text3);margin-bottom:12px">Meses actuales: <strong>' + (baseMonths !== null ? baseMonths : 'N/A') + '</strong></p>'
     + '<div class="form-group"><label class="form-label">Pago extra mensual</label>'
-    + '<input class="form-input" id="sim-extra" type="number" step="0.01" min="0" placeholder="0.00"></div>'
+    + '<input class="form-input" id="sim-extra" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>'
     + '<div id="sim-result" style="margin-top:12px;font-size:14px;color:var(--text2)"></div>';
 
   MF.nav.showModal(formHTML, 'Simular pago extra', [
@@ -131,10 +131,18 @@ function _openPaymentModal(id) {
   if (!debt) return;
 
   var cur     = (db.settings && db.settings.currency) || '$';
+  var accOpts = db.accounts.map(function(a) {
+    return '<option value="' + MF.nav.esc(a.id) + '">' + MF.nav.esc(a.name) + '</option>';
+  }).join('');
   var formHTML = '<p style="color:var(--text2);margin-bottom:12px">Deuda: <strong>' + MF.nav.esc(debt.name) + '</strong></p>'
     + '<p style="font-size:13px;color:var(--text3);margin-bottom:12px">Saldo: ' + MF.nav.esc(MF.nav.formatCurrency(debt.remaining, cur)) + '</p>'
     + '<div class="form-group"><label class="form-label">Monto pagado</label>'
-    + '<input class="form-input" id="pay-amount" type="number" step="0.01" min="0.01" value="' + (debt.monthly || '') + '"></div>';
+    + '<input class="form-input" id="pay-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="' + (debt.monthly || '') + '"></div>'
+    + (accOpts
+      ? '<div class="form-group"><label class="form-label">Cuenta de pago</label>'
+        + '<select class="form-select" id="pay-account">' + accOpts + '</select></div>'
+        + '<p style="font-size:11px;color:var(--text3)">Se registra como gasto en la categor\u00eda Deudas.</p>'
+      : '');
 
   MF.nav.showModal(formHTML, 'Registrar pago', [
     { label: 'Cancelar', action: MF.nav.closeModal },
@@ -143,9 +151,18 @@ function _openPaymentModal(id) {
       if (!amount || amount <= 0) { MF.nav.toast('Monto inv\u00e1lido', 'error'); return; }
       var db2  = MF.db.loadData();
       var idx  = db2.debts.findIndex(function(d) { return d.id === id; });
+      var now  = new Date().toISOString();
       if (idx >= 0) {
         db2.debts[idx].remaining = Math.max((db2.debts[idx].remaining || 0) - amount, 0);
-        db2.debts[idx].updatedAt = new Date().toISOString();
+        db2.debts[idx].updatedAt = now;
+      }
+      var account = (document.getElementById('pay-account') || {}).value || '';
+      if (account) {
+        var tx = { id: MF.db.generateId(), desc: 'Pago ' + debt.name, cat: 'Deudas',
+                   amount: amount, account: account, type: 'expense', note: '',
+                   date: MF.db.localISODate(), createdAt: now, updatedAt: now };
+        MF.db.applyTxEffect(db2, null, tx);
+        db2.transactions.push(tx);
       }
       MF.db.saveData(db2);
       MF.nav.closeModal();
@@ -168,17 +185,17 @@ function _openAddModal(id) {
     + '<option value="credit"' + (debt && debt.type === 'credit' ? ' selected' : '') + '>Tarjeta</option>'
     + '</select></div>'
     + '<div class="form-group"><label class="form-label">Tasa anual (%)</label>'
-    + '<input class="form-input" id="debt-rate" type="number" step="0.1" min="0" value="' + (debt ? debt.rate : 0) + '"></div>'
+    + '<input class="form-input" id="debt-rate" type="number" inputmode="decimal" step="0.1" min="0" value="' + (debt ? debt.rate : 0) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Total original</label>'
-    + '<input class="form-input" id="debt-total" type="number" step="0.01" min="0" value="' + (debt ? debt.total : '') + '"></div>'
+    + '<input class="form-input" id="debt-total" type="number" inputmode="decimal" step="0.01" min="0" value="' + (debt ? debt.total : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Saldo restante</label>'
-    + '<input class="form-input" id="debt-remaining" type="number" step="0.01" min="0" value="' + (debt ? debt.remaining : '') + '"></div>'
+    + '<input class="form-input" id="debt-remaining" type="number" inputmode="decimal" step="0.01" min="0" value="' + (debt ? debt.remaining : '') + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Pago mensual</label>'
-    + '<input class="form-input" id="debt-monthly" type="number" step="0.01" min="0" value="' + (debt ? debt.monthly : '') + '"></div>'
+    + '<input class="form-input" id="debt-monthly" type="number" inputmode="decimal" step="0.01" min="0" value="' + (debt ? debt.monthly : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="debt-color" type="color" value="' + MF.nav.esc(debt ? debt.color : '#f7768e') + '" style="height:40px;padding:4px"></div>'
     + '</div>';

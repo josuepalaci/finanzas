@@ -153,6 +153,11 @@
 /* xl  — 1280px */ @media (min-width: 1280px) { .main-content { padding: 28px calc(40px + var(--safe-right)) calc(28px + var(--safe-bottom)) 40px; } }
 /* 2xl — 1536px */ @media (min-width: 1536px) { .main-content { padding: 32px calc(56px + var(--safe-right)) calc(32px + var(--safe-bottom)) 56px; } }
 
+/* móvil: espacio extra al fondo para que el FAB no tape la última fila */
+@media (max-width: 767px) {
+  .main-content { padding-bottom: calc(var(--fab-size) + 44px); }
+}
+
 /* ── Views ───────────────────────────────────────────── */
 .view { display: none; }
 .view.active { display: block; }

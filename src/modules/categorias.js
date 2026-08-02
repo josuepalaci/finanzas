@@ -11,6 +11,7 @@ var DEFAULT_CATS = [
   { name: 'Hogar',            color: '#e0af68', icon: 'house' },
   { name: 'Educaci\u00f3n',  color: '#2ac3de', icon: 'book' },
   { name: 'Ingresos',         color: '#9ece6a', icon: 'gastos' },
+  { name: 'Deudas',           color: '#f7768e', icon: 'deudas' },
   { name: 'Apple Pay',        color: '#a9b1d6', icon: 'coins' },
   { name: 'Otro',             color: '#565f89', icon: 'other' }
 ];

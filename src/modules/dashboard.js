@@ -1,13 +1,6 @@
 // src/modules/dashboard.js
 // Vista Dashboard: métricas, health score, donut de gastos, evolución patrimonio.
 
-const CAT_COLORS = {
-  'Alimentación': '#7aa2f7', 'Transporte': '#ff9e64',
-  'Entretenimiento': '#bb9af7', 'Salud': '#9ece6a',
-  'Servicios': '#f7768e', 'Ropa': '#73daca',
-  'Ingresos': '#9ece6a', 'Sin categoría': '#565f89'
-};
-
 // ── Instancias de Chart.js ──────────────────────────────────────────────────
 let _donutChart    = null;
 let _netWorthChart = null;
@@ -63,10 +56,10 @@ function render() {
   const viewHTML = '<div class="dash-container">'
     + '<div style="margin-bottom:8px;font-size:12px;color:var(--text3)">' + MF.nav.esc(dateLabel) + '</div>'
     + '<div class="card-grid dash-metric-grid">'
-    + _metricCardHTML('Balance total',     MF.nav.formatCurrency(totalBalance, cur), '')
-    + _metricCardHTML('Ingresos del mes',  MF.nav.formatCurrency(income,        cur), 'color:var(--income)')
-    + _metricCardHTML('Gastos del mes',    MF.nav.formatCurrency(expenses,      cur), 'color:var(--expense)')
-    + _metricCardHTML('Ahorro',            MF.nav.formatCurrency(savings,       cur), 'color:' + savingsColor)
+    + _metricCardHTML('Balance total',     MF.nav.formatCurrency(totalBalance, cur), '', 'cuentas')
+    + _metricCardHTML('Ingresos del mes',  MF.nav.formatCurrency(income,        cur), 'color:var(--income)', 'gastos')
+    + _metricCardHTML('Gastos del mes',    MF.nav.formatCurrency(expenses,      cur), 'color:var(--expense)', 'gastos')
+    + _metricCardHTML('Ahorro',            MF.nav.formatCurrency(savings,       cur), 'color:' + savingsColor, 'reporte')
     + '</div>'
     + '<div class="dash-charts-grid">'
     + '<div class="card">'
@@ -98,8 +91,9 @@ function render() {
   _renderNetWorth(netWorthData, cur, isMobile, isLarge);
 }
 
-function _metricCardHTML(label, value, style) {
-  return '<div class="card" style="padding:12px 14px">'
+function _metricCardHTML(label, value, style, navTo) {
+  // data-nav lo maneja el click handler global del router (nav.js)
+  return '<div class="card" style="padding:12px 14px;cursor:pointer"' + (navTo ? ' data-nav="' + navTo + '"' : '') + '>'
     + '<div class="card-title" style="font-size:11px">' + MF.nav.esc(label) + '</div>'
     + '<div class="card-value" style="margin-top:6px;font-size:18px;' + style + '">' + MF.nav.esc(value) + '</div>'
     + '</div>';

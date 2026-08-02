@@ -43,6 +43,7 @@ function init() {
   _initDrawer();
   _initModal();
   _initGlobalKeys();
+  _initBackButton();
   _checkReminderBanner();
   _applySystemNotificationOnLoad();
   // Va al final: necesita el router montado y puede abrir un modal encima.
@@ -60,6 +61,45 @@ function _maybeUnlockScroll() {
   const modalOpen  = document.getElementById('modal')?.classList.contains('active');
   const drawerOpen = document.getElementById('drawer')?.classList.contains('active');
   if (!modalOpen && !drawerOpen) document.body.classList.remove('scroll-locked');
+}
+
+// ── Botón atrás (Android/PWA): cierra la capa abierta en vez de salir ───────
+// Al abrir modal/drawer se agrega una entrada al history; el back la consume y
+// cierra la capa. Cierres programáticos (X, overlay, Escape, guardar) consumen
+// la entrada con history.back() suprimiendo el manejo del popstate.
+
+let _layerPushed = false;
+let _suppressPop = false;
+let _pendingNav  = null;
+
+function _pushLayerState() {
+  if (_layerPushed) return;
+  try { history.pushState({ mfLayer: true }, ''); _layerPushed = true; } catch (_) {}
+}
+
+function _consumeLayerState() {
+  if (!_layerPushed) return;
+  _layerPushed = false;
+  _suppressPop = true;
+  try { history.back(); } catch (_) { _suppressPop = false; }
+}
+
+function _initBackButton() {
+  window.addEventListener('popstate', () => {
+    if (_suppressPop) {
+      _suppressPop = false;
+      return;
+    }
+    if (!_layerPushed) return;
+    _layerPushed = false;
+    closeModal();
+    closeDrawer();
+    if (_pendingNav) {
+      const s = _pendingNav;
+      _pendingNav = null;
+      go(s);
+    }
+  });
 }
 
 // ── Teclas globales (Escape cierra capas superpuestas) ──────────────────────
@@ -113,6 +153,12 @@ function _initRouter() {
 
 function go(section) {
   if (!_SECTION_LABELS[section]) return;
+  // Con una capa abierta, primero se consume su entrada del history; el
+  // popstate cierra la capa y aplica esta navegación pendiente.
+  if (_layerPushed) {
+    _pendingNav = section;
+    try { history.back(); return; } catch (_) { _pendingNav = null; }
+  }
   if (location.hash.slice(1) === section) {
     _showSection(section);
   } else {
@@ -219,15 +265,18 @@ function _initDrawer() {
 }
 
 function openDrawer() {
+  _pushLayerState();
   document.getElementById('drawer')?.classList.add('active');
   document.getElementById('drawer-overlay')?.classList.add('active');
   _lockScroll();
 }
 
 function closeDrawer() {
+  const wasOpen = document.getElementById('drawer')?.classList.contains('active');
   document.getElementById('drawer')?.classList.remove('active');
   document.getElementById('drawer-overlay')?.classList.remove('active');
   _maybeUnlockScroll();
+  if (wasOpen) _consumeLayerState();
 }
 
 // ── Tema ───────────────────────────────────────────────────────────────────
@@ -280,6 +329,7 @@ function _initModal() {
 function showModal(trustedHTML, title, buttons) {
   const modal = document.getElementById('modal');
   if (!modal) return;
+  _pushLayerState();
 
   const header = document.createElement('div');
   header.className = 'modal-header';
@@ -328,9 +378,11 @@ function showModal(trustedHTML, title, buttons) {
 }
 
 function closeModal() {
+  const wasOpen = document.getElementById('modal')?.classList.contains('active');
   document.getElementById('modal-overlay')?.classList.remove('active');
   document.getElementById('modal')?.classList.remove('active');
   _maybeUnlockScroll();
+  if (wasOpen) _consumeLayerState();
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────

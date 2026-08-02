@@ -34,6 +34,42 @@ function localMonth(date) {
   return localISODate(date).slice(0, 7);
 }
 
+// ── Efecto de transacciones/transferencias sobre saldos ────────────────────
+// Los saldos de cuenta se ajustan automáticamente al crear/editar/eliminar
+// movimientos. oldTx=null es creación; newTx=null es eliminación. El delta se
+// aplica revirtiendo el efecto anterior y aplicando el nuevo, así una edición
+// que cambia monto, tipo o cuenta queda consistente.
+
+function _adjustBalance(db, accountId, delta) {
+  if (!accountId || !delta) return;
+  const acc = (db.accounts || []).find(a => a.id === accountId);
+  if (!acc) return;
+  acc.balance = (acc.balance || 0) + delta;
+  acc.updatedAt = new Date().toISOString();
+}
+
+function _txDelta(tx) {
+  if (!tx) return 0;
+  const amount = tx.amount || 0;
+  return tx.type === 'income' ? amount : -amount;
+}
+
+function applyTxEffect(db, oldTx, newTx) {
+  if (oldTx) _adjustBalance(db, oldTx.account, -_txDelta(oldTx));
+  if (newTx) _adjustBalance(db, newTx.account, _txDelta(newTx));
+}
+
+function applyTransferEffect(db, oldTr, newTr) {
+  if (oldTr) {
+    _adjustBalance(db, oldTr.from,  oldTr.amount || 0);
+    _adjustBalance(db, oldTr.to,  -(oldTr.amount || 0));
+  }
+  if (newTr) {
+    _adjustBalance(db, newTr.from, -(newTr.amount || 0));
+    _adjustBalance(db, newTr.to,    newTr.amount || 0);
+  }
+}
+
 // ── DB vacía ───────────────────────────────────────────────────────────────
 
 function emptyDB() {
@@ -350,6 +386,8 @@ const _dbAPI = {
   generateId,
   localISODate,
   localMonth,
+  applyTxEffect,
+  applyTransferEffect,
   storageUsedKB,
   generateDemoData,
   migrateV1toV2

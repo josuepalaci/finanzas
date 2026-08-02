@@ -5,7 +5,10 @@ const assert = require('node:assert/strict');
 global.window = { MF: { db: { loadData: () => ({}), saveData: () => {} } } };
 global.crypto = { randomUUID: () => require('crypto').randomUUID() };
 
-const { mergeCollection, mergeDB, calcMergePreview } = require('../src/modules/sync');
+const realDb = require('../src/modules/db');
+global.window.MF.db.migrateV1toV2 = realDb.migrateV1toV2;
+
+const { mergeCollection, mergeDB, calcMergePreview, prepareIncoming } = require('../src/modules/sync');
 
 function makeItem(id, updatedAt, extra = {}) {
   return { id, updatedAt, ...extra };
@@ -143,5 +146,31 @@ describe('calcMergePreview', () => {
     const incoming = { ...emptyDB(), accounts: [makeItem('a1', ago(5000))] };
     const preview  = calcMergePreview(local, incoming);
     assert.equal(preview.localWins, 1);
+  });
+});
+
+describe('prepareIncoming — acepta backups v1 y v2', () => {
+  test('backup v2 (con _meta) pasa intacto', () => {
+    const v2 = { _meta: { version: 2 }, accounts: [], transactions: [] };
+    assert.equal(prepareIncoming(v2), v2);
+  });
+
+  test('backup v1 (sin _meta pero con colecciones) se migra a v2', () => {
+    const v1 = {
+      accounts: [{ id: 'a1', name: 'Vieja', balance: 10 }],
+      transactions: [{ id: 't1', desc: 'Pan', amount: 2, account: 'a1' }],
+      settings: { currency: '$' }
+    };
+    const out = prepareIncoming(v1);
+    assert.equal(out._meta.version, 2);
+    assert.equal(out.accounts.length, 1);
+    assert.ok(out.accounts[0].id.length >= 32, 'debe asignar UUID');
+    assert.equal(out.transactions[0].account, out.accounts[0].id, 'las referencias se remapean');
+  });
+
+  test('objeto no reconocible retorna null', () => {
+    assert.equal(prepareIncoming({ foo: 1 }), null);
+    assert.equal(prepareIncoming(null), null);
+    assert.equal(prepareIncoming('texto'), null);
   });
 });

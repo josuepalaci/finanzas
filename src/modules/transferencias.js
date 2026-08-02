@@ -37,6 +37,8 @@ function render() {
       { label: 'Cancelar', action: MF.nav.closeModal },
       { label: 'Eliminar', danger: true, action: function() {
         var db2 = MF.db.loadData();
+        var oldTr = db2.transfers.find(function(t) { return t.id === id; });
+        if (oldTr) MF.db.applyTransferEffect(db2, oldTr, null);
         db2.transfers = db2.transfers.filter(function(t) { return t.id !== id; });
         MF.db.saveData(db2);
         MF.nav.closeModal();
@@ -59,7 +61,7 @@ function _openAddModal() {
     + '<div class="form-group"><label class="form-label">Hacia</label><select class="form-select" id="tr-to">' + accOpts + '</select></div>'
     + '</div>'
     + '<div class="form-row">'
-    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="tr-amount" type="number" step="0.01" min="0.01"></div>'
+    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="tr-amount" type="number" inputmode="decimal" step="0.01" min="0.01"></div>'
     + '<div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="tr-date" type="date" value="' + MF.nav.esc(today) + '"></div>'
     + '</div>'
     + '<div class="form-group"><label class="form-label">Nota (opcional)</label><input class="form-input" id="tr-note" placeholder="Motivo\u2026"></div>';
@@ -75,7 +77,9 @@ function _openAddModal() {
       if (from === to)           { MF.nav.toast('Las cuentas deben ser distintas', 'error'); return; }
       if (!amount || amount <= 0) { MF.nav.toast('Monto inv\u00e1lido', 'error'); return; }
       var db2 = MF.db.loadData(); var now = new Date().toISOString();
-      db2.transfers.push({ id: MF.db.generateId(), from: from, to: to, amount: amount, date: date, note: note, createdAt: now });
+      var newTr = { id: MF.db.generateId(), from: from, to: to, amount: amount, date: date, note: note, createdAt: now };
+      MF.db.applyTransferEffect(db2, null, newTr);
+      db2.transfers.push(newTr);
       MF.db.saveData(db2);
       MF.nav.closeModal();
       MF.nav.toast('Transferencia registrada');

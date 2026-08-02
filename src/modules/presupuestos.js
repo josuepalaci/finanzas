@@ -52,6 +52,9 @@ function render() {
     const db2 = MF.db.loadData();
     db2.settings.budgetRollover = e.target.checked;
     MF.db.saveData(db2);
+    MF.nav.toast(e.target.checked
+      ? 'Rollover activado: lo no gastado se suma al mes siguiente'
+      : 'Rollover desactivado: cada mes parte del l\u00edmite base', 'info');
     render();
   });
 
@@ -115,7 +118,7 @@ function _openAddModal(id) {
     + '<select class="form-select" id="budget-cat">' + catOptions + '</select></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">L\u00edmite mensual</label>'
-    + '<input class="form-input" id="budget-limit" type="number" step="0.01" min="0" value="' + (budget ? budget.limit : '') + '"></div>'
+    + '<input class="form-input" id="budget-limit" type="number" inputmode="decimal" step="0.01" min="0" value="' + (budget ? budget.limit : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="budget-color" type="color" value="' + MF.nav.esc(budget ? budget.color : '#7aa2f7') + '" style="height:40px;padding:4px"></div>'
     + '</div>';

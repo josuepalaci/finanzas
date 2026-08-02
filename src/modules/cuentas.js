@@ -136,7 +136,7 @@ function _openAccountModal(id) {
     + '<div class="form-group"><label class="form-label">Tipo</label>'
     + '<select class="form-select" id="acc-type">' + typeOptions + '</select></div>'
     + '<div class="form-group"><label class="form-label">Saldo</label>'
-    + '<input class="form-input" id="acc-balance" type="number" step="0.01" value="' + (acc ? acc.balance : 0) + '"></div>'
+    + '<input class="form-input" id="acc-balance" type="number" inputmode="decimal" step="0.01" value="' + (acc ? acc.balance : 0) + '"></div>'
     + '</div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="acc-color" type="color" value="' + MF.nav.esc(acc ? acc.color : '#7aa2f7') + '" style="height:40px;padding:4px"></div>';
@@ -172,8 +172,9 @@ function _saveAccount(id) {
 }
 
 function _deleteAccount(id) {
+  const acc = MF.db.loadData().accounts.find(a => a.id === id);
   MF.nav.showModal(
-    '<p style="color:var(--text2)">\u00bfEliminar esta cuenta? Las transacciones asociadas no se eliminan.</p>',
+    '<p style="color:var(--text2)">\u00bfEliminar la cuenta <strong>' + MF.nav.esc(acc ? acc.name : '') + '</strong>? Las transacciones asociadas no se eliminan.</p>',
     'Eliminar cuenta',
     [
       { label: 'Cancelar', action: MF.nav.closeModal },
@@ -199,13 +200,13 @@ function _openCardModal(id) {
     + '<input class="form-input" id="card-name" value="' + MF.nav.esc(card ? card.name : '') + '" placeholder="ej: Visa Platinum"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">L\u00edmite</label>'
-    + '<input class="form-input" id="card-limit" type="number" step="0.01" value="' + (card ? card.limit : 0) + '"></div>'
+    + '<input class="form-input" id="card-limit" type="number" inputmode="decimal" step="0.01" value="' + (card ? card.limit : 0) + '"></div>'
     + '<div class="form-group"><label class="form-label">Saldo actual</label>'
-    + '<input class="form-input" id="card-balance" type="number" step="0.01" value="' + (card ? card.balance : 0) + '"></div>'
+    + '<input class="form-input" id="card-balance" type="number" inputmode="decimal" step="0.01" value="' + (card ? card.balance : 0) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">D\u00eda de cierre</label>'
-    + '<input class="form-input" id="card-closeday" type="number" min="1" max="31" value="' + (card ? (card.closeDay || 15) : 15) + '"></div>'
+    + '<input class="form-input" id="card-closeday" type="number" inputmode="numeric" min="1" max="31" value="' + (card ? (card.closeDay || 15) : 15) + '"></div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="card-color" type="color" value="' + MF.nav.esc(card ? card.color : '#bb9af7') + '" style="height:40px;padding:4px"></div>'
     + '</div>';

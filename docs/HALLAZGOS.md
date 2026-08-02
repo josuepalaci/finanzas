@@ -6,7 +6,11 @@ Revisión de todo el código fuente, estilos, tests y CI (verificado contra orig
 
 ## 🐛 Bugs vigentes
 
-> **Actualización 2026-08-02:** B1, B2, B3, B4, B6, B7, B8 y B9 fueron corregidos en `d7b9925` (tests 182/182 en verde, deploy automático verificado). Queda pendiente **B5** (ícono PNG para iOS) y las secciones de mejoras y UX.
+> **Actualización 2026-08-02 (2):** TODO lo listado quedó resuelto.
+> - Bugs B1–B4, B6–B9 en `d7b9925`; B5 (íconos PNG reales para iOS/Android) en el commit siguiente.
+> - Mejoras M1 (los movimientos ajustan saldos vía `applyTxEffect`/`applyTransferEffect`), M2 (botón "registrar ahora" en recurrentes vencidos), M3 (pagos de deuda/cuota crean transacción en categoría `Deudas` y piden cuenta), M4 (import acepta backups v1 con `prepareIncoming`), M5, M6, M7.
+> - UX U1 (botón atrás cierra modal/drawer vía history state), U2 (padding inferior anti-FAB), U3 (`inputmode` en inputs numéricos), U4 (métricas del dashboard navegan), U5 (confirmaciones con detalle), U6 (toast explicativo del rollover).
+> Este documento queda como registro histórico; el detalle de cada hallazgo está abajo.
 
 ### B1. Bug de zona horaria en todo el cálculo de fechas (confirmado: `npm test` falla hoy — 170/171)
 El código usa `new Date().toISOString().slice(0,10|7)` (UTC) para "hoy" y "mes actual", pero las fechas de transacción son locales. En El Salvador (UTC−6), **después de las 6 p.m. "hoy" en UTC ya es mañana**. Afecta a 13 módulos (`grep -rl "toISOString().slice" src/modules/`):

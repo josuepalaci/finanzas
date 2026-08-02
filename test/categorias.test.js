@@ -12,6 +12,11 @@ describe('DEFAULT_CATS', () => {
     assert.ok(DEFAULT_CATS.length > 0);
   });
 
+  test('incluye la categoría Deudas (pagos de deuda/cuota crean transacción)', () => {
+    const cat = DEFAULT_CATS.find(c => c.name === 'Deudas');
+    assert.ok(cat, 'falta la categoría Deudas');
+  });
+
   test('incluye la categoría Apple Pay', () => {
     const cat = DEFAULT_CATS.find(c => c.name === 'Apple Pay');
     assert.ok(cat, 'falta la categoría Apple Pay');

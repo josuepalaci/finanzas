@@ -114,7 +114,6 @@ function buildHTML(css, js) {
 
 const APP_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2f45"/><stop offset="1" stop-color="#191a24"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7aa2f7"/><stop offset="1" stop-color="#bb9af7"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#b)"/><g transform="translate(56,56) scale(16.6667)" fill="none" stroke="url(#g)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6V18M9 15.1818L9.87887 15.841C11.0504 16.7197 12.9498 16.7197 14.1214 15.841C15.2929 14.9623 15.2929 13.5377 14.1214 12.659C13.5355 12.2196 12.7677 12 11.9999 12C11.275 12 10.5502 11.7804 9.99709 11.341C8.891 10.4623 8.891 9.03772 9.9971 8.15904C11.1032 7.28036 12.8965 7.28036 14.0026 8.15904L14.4175 8.48863M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"/></g></svg>`;
 
-const APP_ICON_URI = 'data:image/svg+xml,' + encodeURIComponent(APP_ICON_SVG);
 
 const MANIFEST = {
   name: 'MisFinanzas · Finanzas personales',
@@ -127,8 +126,9 @@ const MANIFEST = {
   background_color: '#1e1f2e',
   theme_color: '#1e1f2e',
   icons: [
-    { src: APP_ICON_URI, sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
-    { src: APP_ICON_URI, sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' }
+    { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
   ]
 };
 
@@ -149,6 +149,12 @@ async function main() {
 
   console.log('SW...');
   fs.copyFileSync('src/sw.js', 'dist/sw.js');
+
+  // Íconos PNG (apple-touch-icon requiere PNG; SVG no funciona en iOS/Android).
+  for (const png of ['icon-180.png', 'icon-192.png', 'icon-512.png']) {
+    const src = 'assets/' + png;
+    if (fs.existsSync(src)) fs.copyFileSync(src, 'dist/' + png);
+  }
 
   // Atajo de iOS ya firmado (shortcuts sign -m anyone); se publica junto a la app.
   if (fs.existsSync('MisFinanzas.shortcut')) {

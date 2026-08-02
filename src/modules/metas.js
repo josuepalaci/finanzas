@@ -98,9 +98,9 @@ function _openAddModal(id) {
     + '<input class="form-input" id="goal-name" value="' + MF.nav.esc(goal ? goal.name : '') + '" placeholder="ej: Fondo de emergencia"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Meta ($)</label>'
-    + '<input class="form-input" id="goal-target" type="number" step="0.01" min="0" value="' + (goal ? goal.target : '') + '"></div>'
+    + '<input class="form-input" id="goal-target" type="number" inputmode="decimal" step="0.01" min="0" value="' + (goal ? goal.target : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Ahorrado ($)</label>'
-    + '<input class="form-input" id="goal-saved" type="number" step="0.01" min="0" value="' + (goal ? goal.saved : 0) + '"></div>'
+    + '<input class="form-input" id="goal-saved" type="number" inputmode="decimal" step="0.01" min="0" value="' + (goal ? goal.saved : 0) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Fecha l\u00edmite</label>'
@@ -122,7 +122,7 @@ function _openAddSavingsModal(id) {
 
   var formHTML = '<p style="color:var(--text2);margin-bottom:12px">Meta: <strong>' + MF.nav.esc(goal.name) + '</strong></p>'
     + '<div class="form-group"><label class="form-label">Monto a agregar</label>'
-    + '<input class="form-input" id="savings-amount" type="number" step="0.01" min="0.01" placeholder="0.00"></div>';
+    + '<input class="form-input" id="savings-amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00"></div>';
 
   MF.nav.showModal(formHTML, 'Agregar ahorro', [
     { label: 'Cancelar', action: MF.nav.closeModal },

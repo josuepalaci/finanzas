@@ -91,6 +91,97 @@ describe('loadData / saveData', () => {
   });
 });
 
+describe('applyTxEffect — las transacciones ajustan el saldo de la cuenta', () => {
+  function dbWith(balance) {
+    const d = db.emptyDB();
+    d.accounts.push({ id: 'acc1', name: 'Corriente', balance: balance, updatedAt: '2026-01-01T00:00:00Z' });
+    d.accounts.push({ id: 'acc2', name: 'Ahorros', balance: 500, updatedAt: '2026-01-01T00:00:00Z' });
+    return d;
+  }
+  const gasto   = { id: 't1', type: 'expense', amount: 100, account: 'acc1' };
+  const ingreso = { id: 't2', type: 'income',  amount: 300, account: 'acc1' };
+
+  test('crear un gasto resta del saldo', () => {
+    const d = dbWith(1000);
+    db.applyTxEffect(d, null, gasto);
+    assert.equal(d.accounts[0].balance, 900);
+  });
+
+  test('crear un ingreso suma al saldo', () => {
+    const d = dbWith(1000);
+    db.applyTxEffect(d, null, ingreso);
+    assert.equal(d.accounts[0].balance, 1300);
+  });
+
+  test('eliminar revierte el efecto', () => {
+    const d = dbWith(900);
+    db.applyTxEffect(d, gasto, null);
+    assert.equal(d.accounts[0].balance, 1000);
+  });
+
+  test('editar el monto ajusta por la diferencia', () => {
+    const d = dbWith(900); // ya tiene aplicado el gasto de 100
+    db.applyTxEffect(d, gasto, { ...gasto, amount: 250 });
+    assert.equal(d.accounts[0].balance, 750);
+  });
+
+  test('editar la cuenta mueve el efecto entre cuentas', () => {
+    const d = dbWith(900);
+    db.applyTxEffect(d, gasto, { ...gasto, account: 'acc2' });
+    assert.equal(d.accounts[0].balance, 1000);
+    assert.equal(d.accounts[1].balance, 400);
+  });
+
+  test('cambiar de gasto a ingreso invierte el signo', () => {
+    const d = dbWith(900);
+    db.applyTxEffect(d, gasto, { ...gasto, type: 'income' });
+    assert.equal(d.accounts[0].balance, 1100);
+  });
+
+  test('cuenta inexistente o vacía: no hace nada ni lanza', () => {
+    const d = dbWith(1000);
+    db.applyTxEffect(d, null, { ...gasto, account: 'borrada' });
+    db.applyTxEffect(d, null, { ...gasto, account: '' });
+    assert.equal(d.accounts[0].balance, 1000);
+  });
+
+  test('actualiza updatedAt de la cuenta afectada (para el merge de sync)', () => {
+    const d = dbWith(1000);
+    db.applyTxEffect(d, null, gasto);
+    assert.notEqual(d.accounts[0].updatedAt, '2026-01-01T00:00:00Z');
+  });
+});
+
+describe('applyTransferEffect — las transferencias mueven saldo', () => {
+  function dbWith() {
+    const d = db.emptyDB();
+    d.accounts.push({ id: 'a', name: 'A', balance: 1000 });
+    d.accounts.push({ id: 'b', name: 'B', balance: 200 });
+    return d;
+  }
+  const tr = { id: 'tr1', from: 'a', to: 'b', amount: 150 };
+
+  test('crear resta del origen y suma al destino', () => {
+    const d = dbWith();
+    db.applyTransferEffect(d, null, tr);
+    assert.equal(d.accounts[0].balance, 850);
+    assert.equal(d.accounts[1].balance, 350);
+  });
+
+  test('eliminar revierte el movimiento', () => {
+    const d = dbWith();
+    db.applyTransferEffect(d, tr, null);
+    assert.equal(d.accounts[0].balance, 1150);
+    assert.equal(d.accounts[1].balance, 50);
+  });
+
+  test('cuentas inexistentes: no lanza', () => {
+    const d = dbWith();
+    db.applyTransferEffect(d, null, { from: 'x', to: 'y', amount: 50 });
+    assert.equal(d.accounts[0].balance, 1000);
+  });
+});
+
 describe('localISODate / localMonth', () => {
   test('formatea la fecha local con padding', () => {
     assert.equal(db.localISODate(new Date(2026, 0, 5)), '2026-01-05');

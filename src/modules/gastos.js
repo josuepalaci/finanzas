@@ -14,7 +14,11 @@ const CAT_ICON_KEYS = {
   'Ingresos': 'gastos'
 };
 
-function _catIcon(cat) { return MF.icons[CAT_ICON_KEYS[cat]] || MF.icons.gastos; }
+function _catIcon(cat) {
+  const custom = ((_db && _db.categories) || []).find(c => c.name === cat);
+  if (custom && custom.icon) return MF.icons[custom.icon] || MF.nav.esc(custom.icon);
+  return MF.icons[CAT_ICON_KEYS[cat]] || MF.icons.gastos;
+}
 
 // ── render ──────────────────────────────────────────────────────────────────
 
@@ -204,7 +208,7 @@ function _openAddModal(id, prefill) {
     + '<input class="form-input" id="tx-desc" value="' + MF.nav.esc(base.desc || '') + '" placeholder="ej: Supermercado"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Monto</label>'
-    + '<input class="form-input" id="tx-amount" type="number" step="0.01" min="0" value="'
+    + '<input class="form-input" id="tx-amount" type="number" inputmode="decimal" step="0.01" min="0" value="'
     + (base.amount != null ? Number(base.amount) : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label>'
     + '<select class="form-select" id="tx-cat">' + catOptions + '</select></div>'
@@ -243,9 +247,16 @@ function _saveTx(id) {
 
   if (id) {
     const idx = db.transactions.findIndex(t => t.id === id);
-    if (idx >= 0) db.transactions[idx] = { ...db.transactions[idx], desc, amount, date, type, cat, account, note, source, updatedAt: now };
+    if (idx >= 0) {
+      const oldTx = db.transactions[idx];
+      const newTx = { ...oldTx, desc, amount, date, type, cat, account, note, source, updatedAt: now };
+      MF.db.applyTxEffect(db, oldTx, newTx);
+      db.transactions[idx] = newTx;
+    }
   } else {
-    db.transactions.push({ id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now });
+    const newTx = { id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now };
+    MF.db.applyTxEffect(db, null, newTx);
+    db.transactions.push(newTx);
   }
 
   MF.db.saveData(db);
@@ -255,13 +266,20 @@ function _saveTx(id) {
 }
 
 function _deleteTx(id) {
+  const tx  = (_db && _db.transactions || []).find(t => t.id === id);
+  const cur = (_db && _db.settings && _db.settings.currency) || '$';
+  const detalle = tx
+    ? '<strong>' + MF.nav.esc(tx.desc) + '</strong> \u2014 ' + MF.nav.esc(MF.nav.formatCurrency(tx.amount, cur)) + ' (' + MF.nav.esc(MF.nav.formatDate(tx.date)) + ')'
+    : 'esta transacci\u00f3n';
   MF.nav.showModal(
-    '<p style="color:var(--text2)">\u00bfEliminar esta transacci\u00f3n?</p>',
+    '<p style="color:var(--text2)">\u00bfEliminar ' + detalle + '?</p>',
     'Eliminar',
     [
       { label: 'Cancelar', action: MF.nav.closeModal },
       { label: 'Eliminar', danger: true, action: () => {
         const db = MF.db.loadData();
+        const oldTx = db.transactions.find(t => t.id === id);
+        if (oldTx) MF.db.applyTxEffect(db, oldTx, null);
         db.transactions = db.transactions.filter(t => t.id !== id);
         MF.db.saveData(db);
         MF.nav.closeModal();

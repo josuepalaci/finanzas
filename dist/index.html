@@ -17,7 +17,7 @@
 
   <!-- Iconos (glifo de moneda en gradiente Tokyo Night) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20512%20512'%3E%3Cdefs%3E%3ClinearGradient%20id='b'%20x1='0'%20y1='0'%20x2='0'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%232a2f45'/%3E%3Cstop%20offset='1'%20stop-color='%23191a24'/%3E%3C/linearGradient%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%237aa2f7'/%3E%3Cstop%20offset='1'%20stop-color='%23bb9af7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='512'%20height='512'%20rx='112'%20fill='url(%23b)'/%3E%3Cg%20transform='translate(56,56)%20scale(16.6667)'%20fill='none'%20stroke='url(%23g)'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%206V18M9%2015.1818L9.87887%2015.841C11.0504%2016.7197%2012.9498%2016.7197%2014.1214%2015.841C15.2929%2014.9623%2015.2929%2013.5377%2014.1214%2012.659C13.5355%2012.2196%2012.7677%2012%2011.9999%2012C11.275%2012%2010.5502%2011.7804%209.99709%2011.341C8.891%2010.4623%208.891%209.03772%209.9971%208.15904C11.1032%207.28036%2012.8965%207.28036%2014.0026%208.15904L14.4175%208.48863M21%2012C21%2016.9706%2016.9706%2021%2012%2021C7.02944%2021%203%2016.9706%203%2012C3%207.02944%207.02944%203%2012%203C16.9706%203%2021%207.02944%2021%2012Z'/%3E%3C/g%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20512%20512'%3E%3Cdefs%3E%3ClinearGradient%20id='b'%20x1='0'%20y1='0'%20x2='0'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%232a2f45'/%3E%3Cstop%20offset='1'%20stop-color='%23191a24'/%3E%3C/linearGradient%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%237aa2f7'/%3E%3Cstop%20offset='1'%20stop-color='%23bb9af7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='512'%20height='512'%20rx='112'%20fill='url(%23b)'/%3E%3Cg%20transform='translate(56,56)%20scale(16.6667)'%20fill='none'%20stroke='url(%23g)'%20stroke-width='1.5'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M12%206V18M9%2015.1818L9.87887%2015.841C11.0504%2016.7197%2012.9498%2016.7197%2014.1214%2015.841C15.2929%2014.9623%2015.2929%2013.5377%2014.1214%2012.659C13.5355%2012.2196%2012.7677%2012%2011.9999%2012C11.275%2012%2010.5502%2011.7804%209.99709%2011.341C8.891%2010.4623%208.891%209.03772%209.9971%208.15904C11.1032%207.28036%2012.8965%207.28036%2014.0026%208.15904L14.4175%208.48863M21%2012C21%2016.9706%2016.9706%2021%2012%2021C7.02944%2021%203%2016.9706%203%2012C3%207.02944%207.02944%203%2012%203C16.9706%203%2021%207.02944%2021%2012Z'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="icon-180.png">
 
   <!-- CSS (build.js reemplaza esto con <style> inlinado) -->
           <style>
@@ -443,6 +443,11 @@ h4 { font-size: 13px; }
 /* lg  — 1024px */ @media (min-width: 1024px) { .main-content { padding: 24px calc(32px + var(--safe-right)) calc(24px + var(--safe-bottom)) 32px; } }
 /* xl  — 1280px */ @media (min-width: 1280px) { .main-content { padding: 28px calc(40px + var(--safe-right)) calc(28px + var(--safe-bottom)) 40px; } }
 /* 2xl — 1536px */ @media (min-width: 1536px) { .main-content { padding: 32px calc(56px + var(--safe-right)) calc(32px + var(--safe-bottom)) 56px; } }
+
+/* móvil: espacio extra al fondo para que el FAB no tape la última fila */
+@media (max-width: 767px) {
+  .main-content { padding-bottom: calc(var(--fab-size) + 44px); }
+}
 
 /* ── Views ───────────────────────────────────────────── */
 .view { display: none; }
@@ -1493,6 +1498,42 @@ function localMonth(date) {
   return localISODate(date).slice(0, 7);
 }
 
+// ── Efecto de transacciones/transferencias sobre saldos ────────────────────
+// Los saldos de cuenta se ajustan automáticamente al crear/editar/eliminar
+// movimientos. oldTx=null es creación; newTx=null es eliminación. El delta se
+// aplica revirtiendo el efecto anterior y aplicando el nuevo, así una edición
+// que cambia monto, tipo o cuenta queda consistente.
+
+function _adjustBalance(db, accountId, delta) {
+  if (!accountId || !delta) return;
+  const acc = (db.accounts || []).find(a => a.id === accountId);
+  if (!acc) return;
+  acc.balance = (acc.balance || 0) + delta;
+  acc.updatedAt = new Date().toISOString();
+}
+
+function _txDelta(tx) {
+  if (!tx) return 0;
+  const amount = tx.amount || 0;
+  return tx.type === 'income' ? amount : -amount;
+}
+
+function applyTxEffect(db, oldTx, newTx) {
+  if (oldTx) _adjustBalance(db, oldTx.account, -_txDelta(oldTx));
+  if (newTx) _adjustBalance(db, newTx.account, _txDelta(newTx));
+}
+
+function applyTransferEffect(db, oldTr, newTr) {
+  if (oldTr) {
+    _adjustBalance(db, oldTr.from,  oldTr.amount || 0);
+    _adjustBalance(db, oldTr.to,  -(oldTr.amount || 0));
+  }
+  if (newTr) {
+    _adjustBalance(db, newTr.from, -(newTr.amount || 0));
+    _adjustBalance(db, newTr.to,    newTr.amount || 0);
+  }
+}
+
 // ── DB vacía ───────────────────────────────────────────────────────────────
 
 function emptyDB() {
@@ -1809,6 +1850,8 @@ const _dbAPI = {
   generateId,
   localISODate,
   localMonth,
+  applyTxEffect,
+  applyTransferEffect,
   storageUsedKB,
   generateDemoData,
   migrateV1toV2
@@ -1968,6 +2011,17 @@ function calcMergePreview(local, incoming) {
   };
 }
 
+// Acepta un backup v2 (con _meta) tal cual, migra un backup v1 (sin _meta pero
+// con colecciones conocidas) y rechaza cualquier otra cosa con null.
+function prepareIncoming(incoming) {
+  if (!incoming || typeof incoming !== 'object') return null;
+  if (incoming._meta) return incoming;
+  const looksV1 = _COLLECTIONS.some(col => Array.isArray(incoming[col]));
+  if (!looksV1) return null;
+  const migrate = typeof window !== 'undefined' && window.MF && window.MF.db && window.MF.db.migrateV1toV2;
+  return migrate ? migrate(incoming) : null;
+}
+
 function importIncremental() {
   const input = document.createElement('input');
   input.type   = 'file';
@@ -1985,7 +2039,8 @@ function importIncremental() {
       return;
     }
 
-    if (!incoming._meta) {
+    incoming = prepareIncoming(incoming);
+    if (!incoming) {
       window.MF.nav.toast('El archivo no parece ser un backup de MisFinanzas', 'error');
       return;
     }
@@ -2033,6 +2088,7 @@ function importIncremental() {
 
 const _syncAPI = {
   exportJSON,
+  prepareIncoming,
   exportCSV,
   mergeDB,
   mergeCollection,
@@ -2358,6 +2414,7 @@ function init() {
   _initDrawer();
   _initModal();
   _initGlobalKeys();
+  _initBackButton();
   _checkReminderBanner();
   _applySystemNotificationOnLoad();
   // Va al final: necesita el router montado y puede abrir un modal encima.
@@ -2375,6 +2432,45 @@ function _maybeUnlockScroll() {
   const modalOpen  = document.getElementById('modal')?.classList.contains('active');
   const drawerOpen = document.getElementById('drawer')?.classList.contains('active');
   if (!modalOpen && !drawerOpen) document.body.classList.remove('scroll-locked');
+}
+
+// ── Botón atrás (Android/PWA): cierra la capa abierta en vez de salir ───────
+// Al abrir modal/drawer se agrega una entrada al history; el back la consume y
+// cierra la capa. Cierres programáticos (X, overlay, Escape, guardar) consumen
+// la entrada con history.back() suprimiendo el manejo del popstate.
+
+let _layerPushed = false;
+let _suppressPop = false;
+let _pendingNav  = null;
+
+function _pushLayerState() {
+  if (_layerPushed) return;
+  try { history.pushState({ mfLayer: true }, ''); _layerPushed = true; } catch (_) {}
+}
+
+function _consumeLayerState() {
+  if (!_layerPushed) return;
+  _layerPushed = false;
+  _suppressPop = true;
+  try { history.back(); } catch (_) { _suppressPop = false; }
+}
+
+function _initBackButton() {
+  window.addEventListener('popstate', () => {
+    if (_suppressPop) {
+      _suppressPop = false;
+      return;
+    }
+    if (!_layerPushed) return;
+    _layerPushed = false;
+    closeModal();
+    closeDrawer();
+    if (_pendingNav) {
+      const s = _pendingNav;
+      _pendingNav = null;
+      go(s);
+    }
+  });
 }
 
 // ── Teclas globales (Escape cierra capas superpuestas) ──────────────────────
@@ -2428,6 +2524,12 @@ function _initRouter() {
 
 function go(section) {
   if (!_SECTION_LABELS[section]) return;
+  // Con una capa abierta, primero se consume su entrada del history; el
+  // popstate cierra la capa y aplica esta navegación pendiente.
+  if (_layerPushed) {
+    _pendingNav = section;
+    try { history.back(); return; } catch (_) { _pendingNav = null; }
+  }
   if (location.hash.slice(1) === section) {
     _showSection(section);
   } else {
@@ -2534,15 +2636,18 @@ function _initDrawer() {
 }
 
 function openDrawer() {
+  _pushLayerState();
   document.getElementById('drawer')?.classList.add('active');
   document.getElementById('drawer-overlay')?.classList.add('active');
   _lockScroll();
 }
 
 function closeDrawer() {
+  const wasOpen = document.getElementById('drawer')?.classList.contains('active');
   document.getElementById('drawer')?.classList.remove('active');
   document.getElementById('drawer-overlay')?.classList.remove('active');
   _maybeUnlockScroll();
+  if (wasOpen) _consumeLayerState();
 }
 
 // ── Tema ───────────────────────────────────────────────────────────────────
@@ -2595,6 +2700,7 @@ function _initModal() {
 function showModal(trustedHTML, title, buttons) {
   const modal = document.getElementById('modal');
   if (!modal) return;
+  _pushLayerState();
 
   const header = document.createElement('div');
   header.className = 'modal-header';
@@ -2643,9 +2749,11 @@ function showModal(trustedHTML, title, buttons) {
 }
 
 function closeModal() {
+  const wasOpen = document.getElementById('modal')?.classList.contains('active');
   document.getElementById('modal-overlay')?.classList.remove('active');
   document.getElementById('modal')?.classList.remove('active');
   _maybeUnlockScroll();
+  if (wasOpen) _consumeLayerState();
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
@@ -2785,6 +2893,7 @@ var DEFAULT_CATS = [
   { name: 'Hogar',            color: '#e0af68', icon: 'house' },
   { name: 'Educaci\u00f3n',  color: '#2ac3de', icon: 'book' },
   { name: 'Ingresos',         color: '#9ece6a', icon: 'gastos' },
+  { name: 'Deudas',           color: '#f7768e', icon: 'deudas' },
   { name: 'Apple Pay',        color: '#a9b1d6', icon: 'coins' },
   { name: 'Otro',             color: '#565f89', icon: 'other' }
 ];
@@ -3363,13 +3472,6 @@ if (typeof window !== 'undefined') {
 // src/modules/dashboard.js
 // Vista Dashboard: métricas, health score, donut de gastos, evolución patrimonio.
 
-const CAT_COLORS = {
-  'Alimentación': '#7aa2f7', 'Transporte': '#ff9e64',
-  'Entretenimiento': '#bb9af7', 'Salud': '#9ece6a',
-  'Servicios': '#f7768e', 'Ropa': '#73daca',
-  'Ingresos': '#9ece6a', 'Sin categoría': '#565f89'
-};
-
 // ── Instancias de Chart.js ──────────────────────────────────────────────────
 let _donutChart    = null;
 let _netWorthChart = null;
@@ -3425,10 +3527,10 @@ function render() {
   const viewHTML = '<div class="dash-container">'
     + '<div style="margin-bottom:8px;font-size:12px;color:var(--text3)">' + MF.nav.esc(dateLabel) + '</div>'
     + '<div class="card-grid dash-metric-grid">'
-    + _metricCardHTML('Balance total',     MF.nav.formatCurrency(totalBalance, cur), '')
-    + _metricCardHTML('Ingresos del mes',  MF.nav.formatCurrency(income,        cur), 'color:var(--income)')
-    + _metricCardHTML('Gastos del mes',    MF.nav.formatCurrency(expenses,      cur), 'color:var(--expense)')
-    + _metricCardHTML('Ahorro',            MF.nav.formatCurrency(savings,       cur), 'color:' + savingsColor)
+    + _metricCardHTML('Balance total',     MF.nav.formatCurrency(totalBalance, cur), '', 'cuentas')
+    + _metricCardHTML('Ingresos del mes',  MF.nav.formatCurrency(income,        cur), 'color:var(--income)', 'gastos')
+    + _metricCardHTML('Gastos del mes',    MF.nav.formatCurrency(expenses,      cur), 'color:var(--expense)', 'gastos')
+    + _metricCardHTML('Ahorro',            MF.nav.formatCurrency(savings,       cur), 'color:' + savingsColor, 'reporte')
     + '</div>'
     + '<div class="dash-charts-grid">'
     + '<div class="card">'
@@ -3460,8 +3562,9 @@ function render() {
   _renderNetWorth(netWorthData, cur, isMobile, isLarge);
 }
 
-function _metricCardHTML(label, value, style) {
-  return '<div class="card" style="padding:12px 14px">'
+function _metricCardHTML(label, value, style, navTo) {
+  // data-nav lo maneja el click handler global del router (nav.js)
+  return '<div class="card" style="padding:12px 14px;cursor:pointer"' + (navTo ? ' data-nav="' + navTo + '"' : '') + '>'
     + '<div class="card-title" style="font-size:11px">' + MF.nav.esc(label) + '</div>'
     + '<div class="card-value" style="margin-top:6px;font-size:18px;' + style + '">' + MF.nav.esc(value) + '</div>'
     + '</div>';
@@ -3716,7 +3819,7 @@ function _openAccountModal(id) {
     + '<div class="form-group"><label class="form-label">Tipo</label>'
     + '<select class="form-select" id="acc-type">' + typeOptions + '</select></div>'
     + '<div class="form-group"><label class="form-label">Saldo</label>'
-    + '<input class="form-input" id="acc-balance" type="number" step="0.01" value="' + (acc ? acc.balance : 0) + '"></div>'
+    + '<input class="form-input" id="acc-balance" type="number" inputmode="decimal" step="0.01" value="' + (acc ? acc.balance : 0) + '"></div>'
     + '</div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="acc-color" type="color" value="' + MF.nav.esc(acc ? acc.color : '#7aa2f7') + '" style="height:40px;padding:4px"></div>';
@@ -3752,8 +3855,9 @@ function _saveAccount(id) {
 }
 
 function _deleteAccount(id) {
+  const acc = MF.db.loadData().accounts.find(a => a.id === id);
   MF.nav.showModal(
-    '<p style="color:var(--text2)">\u00bfEliminar esta cuenta? Las transacciones asociadas no se eliminan.</p>',
+    '<p style="color:var(--text2)">\u00bfEliminar la cuenta <strong>' + MF.nav.esc(acc ? acc.name : '') + '</strong>? Las transacciones asociadas no se eliminan.</p>',
     'Eliminar cuenta',
     [
       { label: 'Cancelar', action: MF.nav.closeModal },
@@ -3779,13 +3883,13 @@ function _openCardModal(id) {
     + '<input class="form-input" id="card-name" value="' + MF.nav.esc(card ? card.name : '') + '" placeholder="ej: Visa Platinum"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">L\u00edmite</label>'
-    + '<input class="form-input" id="card-limit" type="number" step="0.01" value="' + (card ? card.limit : 0) + '"></div>'
+    + '<input class="form-input" id="card-limit" type="number" inputmode="decimal" step="0.01" value="' + (card ? card.limit : 0) + '"></div>'
     + '<div class="form-group"><label class="form-label">Saldo actual</label>'
-    + '<input class="form-input" id="card-balance" type="number" step="0.01" value="' + (card ? card.balance : 0) + '"></div>'
+    + '<input class="form-input" id="card-balance" type="number" inputmode="decimal" step="0.01" value="' + (card ? card.balance : 0) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">D\u00eda de cierre</label>'
-    + '<input class="form-input" id="card-closeday" type="number" min="1" max="31" value="' + (card ? (card.closeDay || 15) : 15) + '"></div>'
+    + '<input class="form-input" id="card-closeday" type="number" inputmode="numeric" min="1" max="31" value="' + (card ? (card.closeDay || 15) : 15) + '"></div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="card-color" type="color" value="' + MF.nav.esc(card ? card.color : '#bb9af7') + '" style="height:40px;padding:4px"></div>'
     + '</div>';
@@ -3868,7 +3972,11 @@ const CAT_ICON_KEYS = {
   'Ingresos': 'gastos'
 };
 
-function _catIcon(cat) { return MF.icons[CAT_ICON_KEYS[cat]] || MF.icons.gastos; }
+function _catIcon(cat) {
+  const custom = ((_db && _db.categories) || []).find(c => c.name === cat);
+  if (custom && custom.icon) return MF.icons[custom.icon] || MF.nav.esc(custom.icon);
+  return MF.icons[CAT_ICON_KEYS[cat]] || MF.icons.gastos;
+}
 
 // ── render ──────────────────────────────────────────────────────────────────
 
@@ -4058,7 +4166,7 @@ function _openAddModal(id, prefill) {
     + '<input class="form-input" id="tx-desc" value="' + MF.nav.esc(base.desc || '') + '" placeholder="ej: Supermercado"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Monto</label>'
-    + '<input class="form-input" id="tx-amount" type="number" step="0.01" min="0" value="'
+    + '<input class="form-input" id="tx-amount" type="number" inputmode="decimal" step="0.01" min="0" value="'
     + (base.amount != null ? Number(base.amount) : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label>'
     + '<select class="form-select" id="tx-cat">' + catOptions + '</select></div>'
@@ -4097,9 +4205,16 @@ function _saveTx(id) {
 
   if (id) {
     const idx = db.transactions.findIndex(t => t.id === id);
-    if (idx >= 0) db.transactions[idx] = { ...db.transactions[idx], desc, amount, date, type, cat, account, note, source, updatedAt: now };
+    if (idx >= 0) {
+      const oldTx = db.transactions[idx];
+      const newTx = { ...oldTx, desc, amount, date, type, cat, account, note, source, updatedAt: now };
+      MF.db.applyTxEffect(db, oldTx, newTx);
+      db.transactions[idx] = newTx;
+    }
   } else {
-    db.transactions.push({ id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now });
+    const newTx = { id: MF.db.generateId(), desc, amount, date, type, cat, account, note, source, createdAt: now, updatedAt: now };
+    MF.db.applyTxEffect(db, null, newTx);
+    db.transactions.push(newTx);
   }
 
   MF.db.saveData(db);
@@ -4109,13 +4224,20 @@ function _saveTx(id) {
 }
 
 function _deleteTx(id) {
+  const tx  = (_db && _db.transactions || []).find(t => t.id === id);
+  const cur = (_db && _db.settings && _db.settings.currency) || '$';
+  const detalle = tx
+    ? '<strong>' + MF.nav.esc(tx.desc) + '</strong> \u2014 ' + MF.nav.esc(MF.nav.formatCurrency(tx.amount, cur)) + ' (' + MF.nav.esc(MF.nav.formatDate(tx.date)) + ')'
+    : 'esta transacci\u00f3n';
   MF.nav.showModal(
-    '<p style="color:var(--text2)">\u00bfEliminar esta transacci\u00f3n?</p>',
+    '<p style="color:var(--text2)">\u00bfEliminar ' + detalle + '?</p>',
     'Eliminar',
     [
       { label: 'Cancelar', action: MF.nav.closeModal },
       { label: 'Eliminar', danger: true, action: () => {
         const db = MF.db.loadData();
+        const oldTx = db.transactions.find(t => t.id === id);
+        if (oldTx) MF.db.applyTxEffect(db, oldTx, null);
         db.transactions = db.transactions.filter(t => t.id !== id);
         MF.db.saveData(db);
         MF.nav.closeModal();
@@ -4193,6 +4315,9 @@ function render() {
     const db2 = MF.db.loadData();
     db2.settings.budgetRollover = e.target.checked;
     MF.db.saveData(db2);
+    MF.nav.toast(e.target.checked
+      ? 'Rollover activado: lo no gastado se suma al mes siguiente'
+      : 'Rollover desactivado: cada mes parte del l\u00edmite base', 'info');
     render();
   });
 
@@ -4256,7 +4381,7 @@ function _openAddModal(id) {
     + '<select class="form-select" id="budget-cat">' + catOptions + '</select></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">L\u00edmite mensual</label>'
-    + '<input class="form-input" id="budget-limit" type="number" step="0.01" min="0" value="' + (budget ? budget.limit : '') + '"></div>'
+    + '<input class="form-input" id="budget-limit" type="number" inputmode="decimal" step="0.01" min="0" value="' + (budget ? budget.limit : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="budget-color" type="color" value="' + MF.nav.esc(budget ? budget.color : '#7aa2f7') + '" style="height:40px;padding:4px"></div>'
     + '</div>';
@@ -4426,9 +4551,9 @@ function _openAddModal(id) {
     + '<input class="form-input" id="goal-name" value="' + MF.nav.esc(goal ? goal.name : '') + '" placeholder="ej: Fondo de emergencia"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Meta ($)</label>'
-    + '<input class="form-input" id="goal-target" type="number" step="0.01" min="0" value="' + (goal ? goal.target : '') + '"></div>'
+    + '<input class="form-input" id="goal-target" type="number" inputmode="decimal" step="0.01" min="0" value="' + (goal ? goal.target : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Ahorrado ($)</label>'
-    + '<input class="form-input" id="goal-saved" type="number" step="0.01" min="0" value="' + (goal ? goal.saved : 0) + '"></div>'
+    + '<input class="form-input" id="goal-saved" type="number" inputmode="decimal" step="0.01" min="0" value="' + (goal ? goal.saved : 0) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Fecha l\u00edmite</label>'
@@ -4450,7 +4575,7 @@ function _openAddSavingsModal(id) {
 
   var formHTML = '<p style="color:var(--text2);margin-bottom:12px">Meta: <strong>' + MF.nav.esc(goal.name) + '</strong></p>'
     + '<div class="form-group"><label class="form-label">Monto a agregar</label>'
-    + '<input class="form-input" id="savings-amount" type="number" step="0.01" min="0.01" placeholder="0.00"></div>';
+    + '<input class="form-input" id="savings-amount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00"></div>';
 
   MF.nav.showModal(formHTML, 'Agregar ahorro', [
     { label: 'Cancelar', action: MF.nav.closeModal },
@@ -4612,7 +4737,7 @@ function _openSimulatorModal(id) {
   var formHTML = '<p style="color:var(--text2);margin-bottom:12px">Deuda: <strong>' + MF.nav.esc(debt.name) + '</strong></p>'
     + '<p style="font-size:13px;color:var(--text3);margin-bottom:12px">Meses actuales: <strong>' + (baseMonths !== null ? baseMonths : 'N/A') + '</strong></p>'
     + '<div class="form-group"><label class="form-label">Pago extra mensual</label>'
-    + '<input class="form-input" id="sim-extra" type="number" step="0.01" min="0" placeholder="0.00"></div>'
+    + '<input class="form-input" id="sim-extra" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>'
     + '<div id="sim-result" style="margin-top:12px;font-size:14px;color:var(--text2)"></div>';
 
   MF.nav.showModal(formHTML, 'Simular pago extra', [
@@ -4647,10 +4772,18 @@ function _openPaymentModal(id) {
   if (!debt) return;
 
   var cur     = (db.settings && db.settings.currency) || '$';
+  var accOpts = db.accounts.map(function(a) {
+    return '<option value="' + MF.nav.esc(a.id) + '">' + MF.nav.esc(a.name) + '</option>';
+  }).join('');
   var formHTML = '<p style="color:var(--text2);margin-bottom:12px">Deuda: <strong>' + MF.nav.esc(debt.name) + '</strong></p>'
     + '<p style="font-size:13px;color:var(--text3);margin-bottom:12px">Saldo: ' + MF.nav.esc(MF.nav.formatCurrency(debt.remaining, cur)) + '</p>'
     + '<div class="form-group"><label class="form-label">Monto pagado</label>'
-    + '<input class="form-input" id="pay-amount" type="number" step="0.01" min="0.01" value="' + (debt.monthly || '') + '"></div>';
+    + '<input class="form-input" id="pay-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="' + (debt.monthly || '') + '"></div>'
+    + (accOpts
+      ? '<div class="form-group"><label class="form-label">Cuenta de pago</label>'
+        + '<select class="form-select" id="pay-account">' + accOpts + '</select></div>'
+        + '<p style="font-size:11px;color:var(--text3)">Se registra como gasto en la categor\u00eda Deudas.</p>'
+      : '');
 
   MF.nav.showModal(formHTML, 'Registrar pago', [
     { label: 'Cancelar', action: MF.nav.closeModal },
@@ -4659,9 +4792,18 @@ function _openPaymentModal(id) {
       if (!amount || amount <= 0) { MF.nav.toast('Monto inv\u00e1lido', 'error'); return; }
       var db2  = MF.db.loadData();
       var idx  = db2.debts.findIndex(function(d) { return d.id === id; });
+      var now  = new Date().toISOString();
       if (idx >= 0) {
         db2.debts[idx].remaining = Math.max((db2.debts[idx].remaining || 0) - amount, 0);
-        db2.debts[idx].updatedAt = new Date().toISOString();
+        db2.debts[idx].updatedAt = now;
+      }
+      var account = (document.getElementById('pay-account') || {}).value || '';
+      if (account) {
+        var tx = { id: MF.db.generateId(), desc: 'Pago ' + debt.name, cat: 'Deudas',
+                   amount: amount, account: account, type: 'expense', note: '',
+                   date: MF.db.localISODate(), createdAt: now, updatedAt: now };
+        MF.db.applyTxEffect(db2, null, tx);
+        db2.transactions.push(tx);
       }
       MF.db.saveData(db2);
       MF.nav.closeModal();
@@ -4684,17 +4826,17 @@ function _openAddModal(id) {
     + '<option value="credit"' + (debt && debt.type === 'credit' ? ' selected' : '') + '>Tarjeta</option>'
     + '</select></div>'
     + '<div class="form-group"><label class="form-label">Tasa anual (%)</label>'
-    + '<input class="form-input" id="debt-rate" type="number" step="0.1" min="0" value="' + (debt ? debt.rate : 0) + '"></div>'
+    + '<input class="form-input" id="debt-rate" type="number" inputmode="decimal" step="0.1" min="0" value="' + (debt ? debt.rate : 0) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Total original</label>'
-    + '<input class="form-input" id="debt-total" type="number" step="0.01" min="0" value="' + (debt ? debt.total : '') + '"></div>'
+    + '<input class="form-input" id="debt-total" type="number" inputmode="decimal" step="0.01" min="0" value="' + (debt ? debt.total : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Saldo restante</label>'
-    + '<input class="form-input" id="debt-remaining" type="number" step="0.01" min="0" value="' + (debt ? debt.remaining : '') + '"></div>'
+    + '<input class="form-input" id="debt-remaining" type="number" inputmode="decimal" step="0.01" min="0" value="' + (debt ? debt.remaining : '') + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Pago mensual</label>'
-    + '<input class="form-input" id="debt-monthly" type="number" step="0.01" min="0" value="' + (debt ? debt.monthly : '') + '"></div>'
+    + '<input class="form-input" id="debt-monthly" type="number" inputmode="decimal" step="0.01" min="0" value="' + (debt ? debt.monthly : '') + '"></div>'
     + '<div class="form-group"><label class="form-label">Color</label>'
     + '<input class="form-input" id="debt-color" type="color" value="' + MF.nav.esc(debt ? debt.color : '#f7768e') + '" style="height:40px;padding:4px"></div>'
     + '</div>';
@@ -4791,6 +4933,8 @@ function render() {
       { label: 'Cancelar', action: MF.nav.closeModal },
       { label: 'Eliminar', danger: true, action: function() {
         var db2 = MF.db.loadData();
+        var oldTr = db2.transfers.find(function(t) { return t.id === id; });
+        if (oldTr) MF.db.applyTransferEffect(db2, oldTr, null);
         db2.transfers = db2.transfers.filter(function(t) { return t.id !== id; });
         MF.db.saveData(db2);
         MF.nav.closeModal();
@@ -4813,7 +4957,7 @@ function _openAddModal() {
     + '<div class="form-group"><label class="form-label">Hacia</label><select class="form-select" id="tr-to">' + accOpts + '</select></div>'
     + '</div>'
     + '<div class="form-row">'
-    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="tr-amount" type="number" step="0.01" min="0.01"></div>'
+    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="tr-amount" type="number" inputmode="decimal" step="0.01" min="0.01"></div>'
     + '<div class="form-group"><label class="form-label">Fecha</label><input class="form-input" id="tr-date" type="date" value="' + MF.nav.esc(today) + '"></div>'
     + '</div>'
     + '<div class="form-group"><label class="form-label">Nota (opcional)</label><input class="form-input" id="tr-note" placeholder="Motivo\u2026"></div>';
@@ -4829,7 +4973,9 @@ function _openAddModal() {
       if (from === to)           { MF.nav.toast('Las cuentas deben ser distintas', 'error'); return; }
       if (!amount || amount <= 0) { MF.nav.toast('Monto inv\u00e1lido', 'error'); return; }
       var db2 = MF.db.loadData(); var now = new Date().toISOString();
-      db2.transfers.push({ id: MF.db.generateId(), from: from, to: to, amount: amount, date: date, note: note, createdAt: now });
+      var newTr = { id: MF.db.generateId(), from: from, to: to, amount: amount, date: date, note: note, createdAt: now };
+      MF.db.applyTransferEffect(db2, null, newTr);
+      db2.transfers.push(newTr);
       MF.db.saveData(db2);
       MF.nav.closeModal();
       MF.nav.toast('Transferencia registrada');
@@ -4884,6 +5030,7 @@ function render() {
       + '</div>'
       + '<div class="list-item__amount">' + MF.nav.esc(MF.nav.formatCurrency(r.amount, cur)) + '/mes</div>'
       + '<div class="list-item__actions">'
+      + (overdue ? '<button class="btn-icon" data-action="reg-rec" data-id="' + MF.nav.esc(r.id) + '" title="Registrar ahora">' + MF.icons.plus + '</button>' : '')
       + '<button class="btn-icon" data-action="edit-rec" data-id="' + MF.nav.esc(r.id) + '">' + MF.icons.pencil + '</button>'
       + '<button class="btn-icon" data-action="del-rec"  data-id="' + MF.nav.esc(r.id) + '">' + MF.icons.trash + '</button>'
       + '</div></div>';
@@ -4900,6 +5047,24 @@ function render() {
     if (!btn) return;
     if (btn.dataset.action === 'edit-rec') _openAddModal(btn.dataset.id);
     else if (btn.dataset.action === 'del-rec') _deleteRec(btn.dataset.id);
+    else if (btn.dataset.action === 'reg-rec') _registerNow(btn.dataset.id);
+  });
+}
+
+// Abre el modal de gasto pre-llenado con los datos del recurrente (mismo
+// patrón que quickadd); al guardar pasa por la validación y efectos normales.
+function _registerNow(id) {
+  var db  = MF.db.loadData();
+  var rec = db.recurring.find(function(r) { return r.id === id; });
+  if (!rec) return;
+  MF.gastos.openAddModal(null, {
+    desc:       rec.desc,
+    amount:     rec.amount,
+    cat:        rec.cat,
+    account:    rec.account,
+    type:       'expense',
+    date:       MF.db.localISODate(),
+    modalTitle: 'Registrar recurrente'
   });
 }
 
@@ -4918,11 +5083,11 @@ function _openAddModal(id) {
     + '<input class="form-input" id="rec-desc" value="' + MF.nav.esc(rec ? rec.desc : '') + '" placeholder="ej: Netflix"></div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label><select class="form-select" id="rec-cat">' + catOpts + '</select></div>'
-    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="rec-amount" type="number" step="0.01" min="0" value="' + (rec ? rec.amount : '') + '"></div>'
+    + '<div class="form-group"><label class="form-label">Monto</label><input class="form-input" id="rec-amount" type="number" inputmode="decimal" step="0.01" min="0" value="' + (rec ? rec.amount : '') + '"></div>'
     + '</div>'
     + '<div class="form-row">'
     + '<div class="form-group"><label class="form-label">Cuenta</label><select class="form-select" id="rec-account">' + accOpts + '</select></div>'
-    + '<div class="form-group"><label class="form-label">D\u00eda del mes</label><input class="form-input" id="rec-day" type="number" min="1" max="31" value="' + (rec ? rec.day : 1) + '"></div>'
+    + '<div class="form-group"><label class="form-label">D\u00eda del mes</label><input class="form-input" id="rec-day" type="number" inputmode="numeric" min="1" max="31" value="' + (rec ? rec.day : 1) + '"></div>'
     + '</div>';
 
   MF.nav.showModal(formHTML, rec ? 'Editar recurrente' : 'Nuevo recurrente', [
@@ -5188,15 +5353,63 @@ function render() {
         }}
       ]);
     } else if (action === 'pay-inst') {
-      var db2 = MF.db.loadData();
-      var idx = db2.installments.findIndex(function(i) { return i.id === id; });
-      if (idx >= 0 && db2.installments[idx].paid < db2.installments[idx].cuotas) {
-        db2.installments[idx].paid += 1;
-        db2.installments[idx].updatedAt = new Date().toISOString();
-        MF.db.saveData(db2); MF.nav.toast('Cuota pagada'); render();
-      }
+      _openPayModal(id);
     }
   });
+}
+
+function _openPayModal(id) {
+  var db   = MF.db.loadData();
+  var inst = db.installments.find(function(i) { return i.id === id; });
+  if (!inst || inst.paid >= inst.cuotas) return;
+
+  var cur    = (db.settings && db.settings.currency) || '$';
+  var amount = inst.cuotaAmt || 0;
+  var accOpts = db.accounts.map(function(a) {
+    return '<option value="' + MF.nav.esc(a.id) + '">' + MF.nav.esc(a.name) + '</option>';
+  }).join('');
+
+  var formHTML = '<p style="color:var(--text2);margin-bottom:12px"><strong>' + MF.nav.esc(inst.desc) + '</strong>'
+    + ' \u2014 cuota ' + (inst.paid + 1) + ' de ' + inst.cuotas + '</p>'
+    + '<p style="font-size:13px;color:var(--text3);margin-bottom:12px">Monto: ' + MF.nav.esc(MF.nav.formatCurrency(amount, cur)) + '</p>'
+    + (accOpts
+      ? '<div class="form-group"><label class="form-label">Cuenta de pago</label>'
+        + '<select class="form-select" id="inst-pay-account">' + accOpts + '</select></div>'
+        + '<p style="font-size:11px;color:var(--text3)">Se registra como gasto en Deudas y baja el saldo de la tarjeta.</p>'
+      : '');
+
+  MF.nav.showModal(formHTML, 'Pagar cuota', [
+    { label: 'Cancelar', action: MF.nav.closeModal },
+    { label: 'Registrar pago', primary: true, action: function() {
+      var db2 = MF.db.loadData();
+      var idx = db2.installments.findIndex(function(i) { return i.id === id; });
+      if (idx < 0 || db2.installments[idx].paid >= db2.installments[idx].cuotas) { MF.nav.closeModal(); return; }
+      var now = new Date().toISOString();
+      db2.installments[idx].paid += 1;
+      db2.installments[idx].updatedAt = now;
+
+      var cardIdx = db2.cards.findIndex(function(c) { return c.id === db2.installments[idx].card; });
+      if (cardIdx >= 0) {
+        db2.cards[cardIdx].balance = Math.max((db2.cards[cardIdx].balance || 0) - amount, 0);
+        db2.cards[cardIdx].updatedAt = now;
+      }
+
+      var account = (document.getElementById('inst-pay-account') || {}).value || '';
+      if (account && amount > 0) {
+        var tx = { id: MF.db.generateId(),
+                   desc: 'Cuota ' + inst.desc + ' (' + db2.installments[idx].paid + '/' + inst.cuotas + ')',
+                   cat: 'Deudas', amount: amount, account: account, type: 'expense', note: '',
+                   date: MF.db.localISODate(), createdAt: now, updatedAt: now };
+        MF.db.applyTxEffect(db2, null, tx);
+        db2.transactions.push(tx);
+      }
+
+      MF.db.saveData(db2);
+      MF.nav.closeModal();
+      MF.nav.toast('Cuota pagada');
+      render();
+    }}
+  ]);
 }
 
 function _openAddModal(id) {
@@ -5218,11 +5431,11 @@ function _openAddModal(id) {
     + '<div class="form-group"><label class="form-label">Categor\u00eda</label><select class="form-select" id="inst-cat">' + catOpts + '</select></div>'
     + '</div>'
     + '<div class="form-row">'
-    + '<div class="form-group"><label class="form-label">Total</label><input class="form-input" id="inst-total" type="number" step="0.01" min="0" value="' + (inst ? inst.total : '') + '"></div>'
-    + '<div class="form-group"><label class="form-label">N\u00famero de cuotas</label><input class="form-input" id="inst-cuotas" type="number" min="1" value="' + (inst ? inst.cuotas : 12) + '"></div>'
+    + '<div class="form-group"><label class="form-label">Total</label><input class="form-input" id="inst-total" type="number" inputmode="decimal" step="0.01" min="0" value="' + (inst ? inst.total : '') + '"></div>'
+    + '<div class="form-group"><label class="form-label">N\u00famero de cuotas</label><input class="form-input" id="inst-cuotas" type="number" inputmode="numeric" min="1" value="' + (inst ? inst.cuotas : 12) + '"></div>'
     + '</div>'
     + '<div class="form-row">'
-    + '<div class="form-group"><label class="form-label">Cuotas pagadas</label><input class="form-input" id="inst-paid" type="number" min="0" value="' + (inst ? inst.paid : 0) + '"></div>'
+    + '<div class="form-group"><label class="form-label">Cuotas pagadas</label><input class="form-input" id="inst-paid" type="number" inputmode="numeric" min="0" value="' + (inst ? inst.paid : 0) + '"></div>'
     + '<div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" id="inst-start" type="date" value="' + MF.nav.esc(inst ? inst.startDate : today) + '"></div>'
     + '</div>';
 
@@ -5789,7 +6002,7 @@ function render() {
         + '<div class="form-row">'
           + '<div class="form-group" style="margin-bottom:0">'
             + '<label class="form-label">Salario bruto</label>'
-            + '<input class="form-input" id="sal-bruto" type="number" min="0" step="0.01" placeholder="0.00">'
+            + '<input class="form-input" id="sal-bruto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">'
             + '<div style="font-size:11px;color:var(--text3);margin-top:4px">M\u00ednimo 2025: $408.80/mes</div>'
           + '</div>'
           + '<div class="form-group" style="margin-bottom:0">'
@@ -5816,24 +6029,24 @@ function render() {
           + '<div class="form-row">'
             + '<div class="form-group" style="margin-bottom:0">'
               + '<label class="form-label" for="sal-hd">Horas extra diurnas</label>'
-              + '<input class="form-input" id="sal-hd" type="number" min="0" step="0.5" placeholder="0">'
+              + '<input class="form-input" id="sal-hd" type="number" inputmode="decimal" min="0" step="0.5" placeholder="0">'
               + '<div class="sal-hint" id="sal-hd-hint"></div>'
             + '</div>'
             + '<div class="form-group" style="margin-bottom:0">'
               + '<label class="form-label" for="sal-hn">Horas extra nocturnas</label>'
-              + '<input class="form-input" id="sal-hn" type="number" min="0" step="0.5" placeholder="0">'
+              + '<input class="form-input" id="sal-hn" type="number" inputmode="decimal" min="0" step="0.5" placeholder="0">'
               + '<div class="sal-hint" id="sal-hn-hint"></div>'
             + '</div>'
           + '</div>'
           + '<div class="form-row" style="margin-top:12px">'
             + '<div class="form-group" style="margin-bottom:0">'
               + '<label class="form-label" for="sal-df">Días feriados trabajados</label>'
-              + '<input class="form-input" id="sal-df" type="number" min="0" step="1" placeholder="0">'
+              + '<input class="form-input" id="sal-df" type="number" inputmode="decimal" min="0" step="1" placeholder="0">'
               + '<div class="sal-hint" id="sal-df-hint">Se paga al doble (Art. 192 CT)</div>'
             + '</div>'
             + '<div class="form-group" style="margin-bottom:0">'
               + '<label class="form-label" for="sal-dnt">Días no trabajados</label>'
-              + '<input class="form-input" id="sal-dnt" type="number" min="0" step="1" placeholder="0">'
+              + '<input class="form-input" id="sal-dnt" type="number" inputmode="decimal" min="0" step="1" placeholder="0">'
               + '<div class="sal-hint" id="sal-dnt-hint"></div>'
             + '</div>'
           + '</div>'
@@ -5862,7 +6075,7 @@ function render() {
       + '<div class="card" style="margin-bottom:16px">'
         + '<div class="form-group">'
           + '<label class="form-label">Monto del servicio</label>'
-          + '<input class="form-input" id="prest-monto" type="number" min="0" step="0.01" placeholder="0.00">'
+          + '<input class="form-input" id="prest-monto" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">'
         + '</div>'
         + '<div style="display:flex;align-items:center;justify-content:space-between">'
           + '<div><div style="font-weight:500;font-size:13px">\u00bfIncluye IVA? (13%)</div>'

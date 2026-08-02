@@ -10,9 +10,9 @@ MisFinanzas v2 — PWA de finanzas personales 100% offline, vanilla JS sin frame
 
 ```bash
 npm run build   # node build.js → dist/index.html (archivo único) + dist/sw.js + dist/manifest.json
-npm test        # node --test test/*.test.js (56 tests)
+npm test        # node --test test/*.test.js
 node --test test/analytics.test.js   # un solo archivo de tests
-npm run dev     # build + open (OJO: abre dist/MisFinanzas.html, que ya no se regenera — abrir dist/index.html)
+npm run dev     # build + abre dist/index.html
 ```
 
 El build necesita red solo la primera vez: descarga Chart.js y las fuentes DM Sans/DM Mono y las cachea en `vendor/` (commiteado). Después es 100% offline.
@@ -58,8 +58,8 @@ Modales: `MF.nav.showModal(html, titulo, botones)` — los botones no cierran el
 - Colecciones: `accounts, cards, transactions, budgets, goals, debts, recurring, transfers, installments, categories` + `settings` + `_meta`.
 - IDs: `MF.db.generateId()` (UUID v4 con polyfill). Todo registro lleva `createdAt`/`updatedAt` ISO — **actualizar `updatedAt` en cada edición**: el merge de sync resuelve conflictos por timestamp (gana el más reciente).
 - Migraciones: pipeline encadenado `_MIGRATIONS[v]` v1→v2→vN, **siempre aditivas, nunca destructivas**. La v1 (`misfinanzas_v1`) se migra automáticamente al cargar.
-- Fechas de transacción: string local `YYYY-MM-DD` (sin hora). Cuidado con `new Date().toISOString()`: es UTC — en UTC−6 después de las 6 p.m. "hoy" en UTC ya es mañana. Preferir helpers de fecha local.
-- Los saldos de cuentas/tarjetas son **manuales**: registrar transacciones, transferencias o pagos de deuda NO ajusta ningún saldo (decisión de diseño actual).
+- Fechas de transacción: string local `YYYY-MM-DD` (sin hora). **Nunca derivar "hoy"/"mes actual" con `toISOString()`** (es UTC; en UTC−6 después de las 6 p.m. sería mañana): usar `MF.db.localISODate()` / `MF.db.localMonth()`. `toISOString()` completo sí se usa para timestamps `createdAt`/`updatedAt`. Los tests fijan `process.env.TZ = 'America/El_Salvador'`.
+- Saldos: crear/editar/eliminar transacciones y transferencias ajusta los saldos automáticamente vía `MF.db.applyTxEffect` / `applyTransferEffect` (revierte el efecto viejo, aplica el nuevo). Los pagos de deuda/cuota crean una transacción en la categoría `Deudas`. El import/merge de sync NO reaplica efectos: el saldo viaja dentro del registro de cuenta y gana el `updatedAt` más reciente.
 
 ### Sync (sync.js)
 
@@ -79,7 +79,7 @@ Tokyo Night con custom properties en base.css (`--bg, --accent, --income, --expe
 
 ### CI/CD
 
-`.github/workflows/main.yml`: build + tests + deploy a GitHub Pages (artifact = `dist/`, sitio en `https://josuepalaci.github.io/finanzas/`). El trigger apunta a `main` pero la rama real es `master`, así que **hoy el deploy solo corre con `workflow_dispatch` manual** — un push no publica nada.
+`.github/workflows/main.yml`: build + tests + deploy a GitHub Pages (artifact = `dist/`, sitio en `https://josuepalaci.github.io/finanzas/`). Dispara automáticamente en cada push a `master` (y con `workflow_dispatch`).
 
 ## Flujo de trabajo para features nuevas
 

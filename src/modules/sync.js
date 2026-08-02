@@ -143,6 +143,17 @@ function calcMergePreview(local, incoming) {
   };
 }
 
+// Acepta un backup v2 (con _meta) tal cual, migra un backup v1 (sin _meta pero
+// con colecciones conocidas) y rechaza cualquier otra cosa con null.
+function prepareIncoming(incoming) {
+  if (!incoming || typeof incoming !== 'object') return null;
+  if (incoming._meta) return incoming;
+  const looksV1 = _COLLECTIONS.some(col => Array.isArray(incoming[col]));
+  if (!looksV1) return null;
+  const migrate = typeof window !== 'undefined' && window.MF && window.MF.db && window.MF.db.migrateV1toV2;
+  return migrate ? migrate(incoming) : null;
+}
+
 function importIncremental() {
   const input = document.createElement('input');
   input.type   = 'file';
@@ -160,7 +171,8 @@ function importIncremental() {
       return;
     }
 
-    if (!incoming._meta) {
+    incoming = prepareIncoming(incoming);
+    if (!incoming) {
       window.MF.nav.toast('El archivo no parece ser un backup de MisFinanzas', 'error');
       return;
     }
@@ -208,6 +220,7 @@ function importIncremental() {
 
 const _syncAPI = {
   exportJSON,
+  prepareIncoming,
   exportCSV,
   mergeDB,
   mergeCollection,

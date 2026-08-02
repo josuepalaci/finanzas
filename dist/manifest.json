@@ -10,15 +10,21 @@
   "theme_color": "#1e1f2e",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22b%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%232a2f45%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23191a24%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237aa2f7%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23bb9af7%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22url(%23b)%22%2F%3E%3Cg%20transform%3D%22translate(56%2C56)%20scale(16.6667)%22%20fill%3D%22none%22%20stroke%3D%22url(%23g)%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%206V18M9%2015.1818L9.87887%2015.841C11.0504%2016.7197%2012.9498%2016.7197%2014.1214%2015.841C15.2929%2014.9623%2015.2929%2013.5377%2014.1214%2012.659C13.5355%2012.2196%2012.7677%2012%2011.9999%2012C11.275%2012%2010.5502%2011.7804%209.99709%2011.341C8.891%2010.4623%208.891%209.03772%209.9971%208.15904C11.1032%207.28036%2012.8965%207.28036%2014.0026%208.15904L14.4175%208.48863M21%2012C21%2016.9706%2016.9706%2021%2012%2021C7.02944%2021%203%2016.9706%203%2012C3%207.02944%207.02944%203%2012%203C16.9706%203%2021%207.02944%2021%2012Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22b%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%232a2f45%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23191a24%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237aa2f7%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23bb9af7%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22url(%23b)%22%2F%3E%3Cg%20transform%3D%22translate(56%2C56)%20scale(16.6667)%22%20fill%3D%22none%22%20stroke%3D%22url(%23g)%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%206V18M9%2015.1818L9.87887%2015.841C11.0504%2016.7197%2012.9498%2016.7197%2014.1214%2015.841C15.2929%2014.9623%2015.2929%2013.5377%2014.1214%2012.659C13.5355%2012.2196%2012.7677%2012%2011.9999%2012C11.275%2012%2010.5502%2011.7804%209.99709%2011.341C8.891%2010.4623%208.891%209.03772%209.9971%208.15904C11.1032%207.28036%2012.8965%207.28036%2014.0026%208.15904L14.4175%208.48863M21%2012C21%2016.9706%2016.9706%2021%2012%2021C7.02944%2021%203%2016.9706%203%2012C3%207.02944%207.02944%203%2012%203C16.9706%203%2021%207.02944%2021%2012Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]
