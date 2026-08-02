@@ -90,6 +90,7 @@ function emptyDB() {
     transfers:    [],
     installments: [],
     categories:   [],
+    quickaddOutbox: [],
     settings: {
       theme: 'dark',
       currency: '$',

@@ -48,6 +48,10 @@ describe('emptyDB', () => {
     assert.equal(empty.settings.currency, '$');
   });
 
+  test('incluye quickaddOutbox vacío', () => {
+    assert.deepEqual(db.emptyDB().quickaddOutbox, []);
+  });
+
   test('cada llamada genera un deviceId distinto', () => {
     const a = db.emptyDB();
     const b = db.emptyDB();

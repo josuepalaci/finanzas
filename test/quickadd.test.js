@@ -13,6 +13,8 @@ const {
   renderInstallCard,
   resolveShortcutLink,
   DEFAULT_SHORTCUT_URL,
+  buildOutboxPayload,
+  parseOutboxPayload,
   buildShortcutPlist,
   shortcutBaseUrl,
   _normalizePath,
@@ -568,5 +570,60 @@ describe('resolveShortcutLink', () => {
 
   test('el oficial es un enlace de iCloud válido', () => {
     assert.ok(DEFAULT_SHORTCUT_URL.startsWith('https://www.icloud.com/shortcuts/'));
+  });
+});
+
+describe('buildOutboxPayload / parseOutboxPayload', () => {
+  const tx = { id: 'u1', desc: 'Super', amount: 24.5, cat: 'Apple Pay', date: '2026-08-02',
+               note: '', type: 'expense', source: 'applepay', account: 'acc1',
+               createdAt: '2026-08-02T20:00:00Z', updatedAt: '2026-08-02T20:00:00Z' };
+
+  test('round-trip: build → parse devuelve las transacciones', () => {
+    const out = parseOutboxPayload(buildOutboxPayload([tx]));
+    assert.equal(out.length, 1);
+    assert.equal(out[0].id, 'u1');
+    assert.equal(out[0].amount, 24.5);
+  });
+
+  test('el payload no incluye la cuenta (los UUID difieren entre copias)', () => {
+    assert.ok(!buildOutboxPayload([tx]).includes('acc1'));
+    assert.equal(parseOutboxPayload(buildOutboxPayload([tx]))[0].account, undefined);
+  });
+
+  test('build limita a los 100 más recientes', () => {
+    const txs = Array.from({ length: 120 }, (_, i) => ({ ...tx, id: 'u' + i }));
+    const out = parseOutboxPayload(buildOutboxPayload(txs));
+    assert.equal(out.length, 100);
+    assert.equal(out[0].id, 'u20');
+  });
+
+  test('parse rechaza entradas que no son payload', () => {
+    assert.equal(parseOutboxPayload(null), null);
+    assert.equal(parseOutboxPayload('hola'), null);
+    assert.equal(parseOutboxPayload('MFSYNC1:{corrupto'), null);
+    assert.equal(parseOutboxPayload('MFSYNC1:{"no":"array"}'), null);
+    assert.equal(parseOutboxPayload('MFSYNC1:[]'), null);
+  });
+
+  test('parse descarta items inválidos y conserva los válidos', () => {
+    const item = (extra) => Object.assign({}, tx, { account: undefined }, extra);
+    const payload = 'MFSYNC1:' + JSON.stringify([
+      item({}),
+      item({ id: '' }),
+      item({ id: 'u2', amount: -5 }),
+      item({ id: 'u3', amount: null }),
+      item({ id: 'u4', desc: '' }),
+      item({ id: 'u5', type: 'other' }),
+      item({ id: 'u6', date: '02/08/2026' }),
+      'no-objeto'
+    ]);
+    const out = parseOutboxPayload(payload);
+    assert.equal(out.length, 1);
+    assert.equal(out[0].id, 'u1');
+  });
+
+  test('parse trunca descripciones a 120', () => {
+    const payload = 'MFSYNC1:' + JSON.stringify([Object.assign({}, tx, { account: undefined, desc: 'x'.repeat(200) })]);
+    assert.equal(parseOutboxPayload(payload)[0].desc.length, 120);
   });
 });

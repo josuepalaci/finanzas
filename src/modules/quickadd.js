@@ -6,6 +6,51 @@ const DEFAULT_CAT      = 'Apple Pay';
 const DEFAULT_SOURCE   = 'applepay';
 const MAX_DESC         = 120;
 
+// ── Outbox: Safari → portapapeles → PWA instalada ─────────────────────────
+// La copia de Safari es un buzón: las transacciones del atajo se acumulan en
+// db.quickaddOutbox y viajan a la app instalada por el portapapeles, con
+// dedup por UUID en el destino. El payload nunca lleva la cuenta: los UUID de
+// cuenta difieren entre copias.
+const OUTBOX_PREFIX = 'MFSYNC1:';
+const OUTBOX_MAX    = 100;
+
+function buildOutboxPayload(txs) {
+  const items = (txs || []).slice(-OUTBOX_MAX).map(t => ({
+    id: t.id, desc: t.desc, amount: t.amount, cat: t.cat || '', date: t.date,
+    note: t.note || '', type: t.type, source: t.source || '',
+    createdAt: t.createdAt || '', updatedAt: t.updatedAt || ''
+  }));
+  return OUTBOX_PREFIX + JSON.stringify(items);
+}
+
+// El portapapeles es entrada no confiable: aquí vive TODA la validación.
+function parseOutboxPayload(str) {
+  if (typeof str !== 'string' || !str.startsWith(OUTBOX_PREFIX)) return null;
+  let arr;
+  try { arr = JSON.parse(str.slice(OUTBOX_PREFIX.length)); } catch (_) { return null; }
+  if (!Array.isArray(arr)) return null;
+
+  const out = [];
+  for (const t of arr.slice(0, OUTBOX_MAX)) {
+    if (!t || typeof t !== 'object') continue;
+    const id     = typeof t.id === 'string' ? t.id.trim() : '';
+    const desc   = typeof t.desc === 'string' ? t.desc.trim().slice(0, MAX_DESC) : '';
+    const amount = t.amount;
+    const type   = t.type === 'income' || t.type === 'expense' ? t.type : '';
+    const date   = typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.date) ? t.date : '';
+    if (!id || !desc || !Number.isFinite(amount) || amount <= 0 || !type || !date) continue;
+    out.push({
+      id, desc, amount, type, date,
+      cat:       typeof t.cat === 'string' ? t.cat.slice(0, 40) : '',
+      note:      typeof t.note === 'string' ? t.note.slice(0, 500) : '',
+      source:    typeof t.source === 'string' ? t.source.slice(0, 20) : '',
+      createdAt: typeof t.createdAt === 'string' ? t.createdAt : '',
+      updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : ''
+    });
+  }
+  return out.length ? out : null;
+}
+
 // ── isQuickAddHash ─────────────────────────────────────────────────────────
 // Separa "este hash no era para mí" de "venía dirigido a mí pero con datos
 // inválidos". El segundo caso merece un aviso al usuario; el primero, silencio.
@@ -412,6 +457,8 @@ function renderInstallCard(slot) {
 const _quickaddAPI = {
   parseIntent,
   isQuickAddHash,
+  buildOutboxPayload,
+  parseOutboxPayload,
   isIOS,
   resolveAccount,
   consume,
