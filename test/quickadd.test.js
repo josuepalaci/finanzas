@@ -11,6 +11,8 @@ const {
   resolveAccount,
   consume,
   renderInstallCard,
+  resolveShortcutLink,
+  DEFAULT_SHORTCUT_URL,
   buildShortcutPlist,
   shortcutBaseUrl,
   _normalizePath,
@@ -307,33 +309,32 @@ describe('renderInstallCard', () => {
     assert.ok(slot.html.includes('btn-download-shortcut'));
   });
 
-  test('sin enlace guardado muestra los pasos y el campo para pegarlo', () => {
+  test('sin enlace guardado usa el enlace oficial: instalar de un toque', () => {
     setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }]);
     const slot = fakeSlot();
     renderInstallCard(slot);
+    assert.ok(slot.html.includes('btn-install-shortcut'));
+    // Los pasos manuales y el campo para otro enlace quedan como fallback.
     assert.ok(slot.html.includes('quickadd-link'));
     assert.ok(slot.html.includes('btn-save-shortcut-link'));
-    assert.ok(slot.html.includes('firmados por Apple'));
-    // Los pasos dejan de estar escondidos tras un <details>.
-    assert.ok(slot.html.includes('Codificar URL'));
-    assert.ok(!slot.html.includes('btn-install-shortcut'));
+    // Sin enlace propio guardado no hay nada que olvidar.
+    assert.ok(!slot.html.includes('btn-forget-shortcut-link'));
   });
 
-  test('con enlace guardado ofrece instalar y olvidar, sin pedirlo de nuevo', () => {
+  test('con enlace propio guardado ofrece instalar y olvidar', () => {
     setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }], 'https://www.icloud.com/shortcuts/abc123');
     const slot = fakeSlot();
     renderInstallCard(slot);
     assert.ok(slot.html.includes('btn-install-shortcut'));
     assert.ok(slot.html.includes('btn-forget-shortcut-link'));
-    assert.ok(!slot.html.includes('btn-save-shortcut-link'));
   });
 
-  test('un enlace guardado inválido se ignora y vuelve a pedir el pegado', () => {
+  test('un enlace guardado inválido cae al enlace oficial', () => {
     setup(UA_IPHONE, [{ id: 'a', name: 'Visa' }], 'https://evil.com/shortcuts/abc');
     const slot = fakeSlot();
     renderInstallCard(slot);
-    assert.ok(!slot.html.includes('btn-install-shortcut'));
-    assert.ok(slot.html.includes('btn-save-shortcut-link'));
+    assert.ok(slot.html.includes('btn-install-shortcut'));
+    assert.ok(!slot.html.includes('btn-forget-shortcut-link'));
   });
 
   test('el enlace guardado nunca se interpola en el HTML', () => {
@@ -547,5 +548,25 @@ describe('PASOS_MANUALES', () => {
 
   test('no queda ningun paso vacio', () => {
     PASOS_MANUALES.forEach(p => assert.ok(p.trim().length > 0));
+  });
+});
+
+describe('resolveShortcutLink', () => {
+  test('sin enlace guardado devuelve el oficial', () => {
+    assert.equal(resolveShortcutLink(''), DEFAULT_SHORTCUT_URL);
+    assert.equal(resolveShortcutLink(undefined), DEFAULT_SHORTCUT_URL);
+  });
+
+  test('un enlace de iCloud válido tiene prioridad', () => {
+    const u = 'https://www.icloud.com/shortcuts/abc123';
+    assert.equal(resolveShortcutLink(u), u);
+  });
+
+  test('un enlace inválido cae al oficial', () => {
+    assert.equal(resolveShortcutLink('https://evil.com/shortcuts/x'), DEFAULT_SHORTCUT_URL);
+  });
+
+  test('el oficial es un enlace de iCloud válido', () => {
+    assert.ok(DEFAULT_SHORTCUT_URL.startsWith('https://www.icloud.com/shortcuts/'));
   });
 });

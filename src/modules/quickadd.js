@@ -272,6 +272,14 @@ const _PASOS = [
   'Ya creado: mantén pulsado el atajo → <strong>Compartir</strong> → <strong>Copiar enlace de iCloud</strong>, y pega ese enlace aquí abajo.'
 ];
 
+// Enlace oficial del atajo, firmado por Apple (compartido vía iCloud). Se usa
+// cuando el usuario no ha guardado uno propio; así la card instala de un toque.
+const DEFAULT_SHORTCUT_URL = 'https://www.icloud.com/shortcuts/7e803a7501594afea8a98e4207dad40b';
+
+function resolveShortcutLink(saved) {
+  return normalizeShortcutLink(saved) || DEFAULT_SHORTCUT_URL;
+}
+
 // Solo aceptamos enlaces de iCloud: son los únicos que Apple firma, y evita que
 // un valor arbitrario acabe en un window.open.
 function normalizeShortcutLink(raw) {
@@ -292,7 +300,7 @@ function renderInstallCard(slot) {
   const db       = MF.db.loadData();
   const accounts = db.accounts || [];
   const current  = (db.settings && db.settings.applePayAccount) || '';
-  const enlace   = normalizeShortcutLink(db.settings && db.settings.applePayShortcutUrl);
+  const propio   = normalizeShortcutLink(db.settings && db.settings.applePayShortcutUrl);
 
   const accOptions = accounts.length
     ? accounts.map(a =>
@@ -319,24 +327,23 @@ function renderInstallCard(slot) {
     + '<div class="form-group"><label class="form-label">Cuenta destino</label>'
     + '<select class="form-select" id="quickadd-account"' + (accounts.length ? '' : ' disabled') + '>'
     + accOptions + '</select></div>'
-    + (enlace
-      ? '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
-        + '<button class="btn btn-primary" id="btn-install-shortcut">Instalar atajo</button>'
-        + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button>'
-        + '<button class="btn btn-ghost" id="btn-forget-shortcut-link">Olvidar enlace</button>'
-        + '</div>'
-      : '<p style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.5">'
-        + 'iOS solo instala atajos <strong>firmados por Apple</strong>, y la firma se genera en '
-        + 'sus servidores. Créalo una vez a mano y compártelo como enlace de iCloud: ese enlace '
-        + 'queda firmado y luego se instala de un toque, aquí y en cualquier iPhone.</p>'
-        + '<ol style="font-size:12px;color:var(--text2);margin:12px 0 0 18px;line-height:1.5">'
-        + pasosHTML + '</ol>'
-        + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
-        + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button></div>'
-        + '<div class="form-group" style="margin-top:12px"><label class="form-label">Enlace de iCloud del atajo</label>'
-        + '<input class="form-input" id="quickadd-link" inputmode="url" autocapitalize="off" '
-        + 'autocorrect="off" spellcheck="false" placeholder="https://www.icloud.com/shortcuts/…"></div>'
-        + '<button class="btn btn-primary" id="btn-save-shortcut-link">Guardar enlace</button>')
+    + '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">'
+    + '<button class="btn btn-primary" id="btn-install-shortcut">Instalar atajo</button>'
+    + '<button class="btn" id="btn-copy-quickadd-url">Copiar URL base</button>'
+    + (propio ? '<button class="btn btn-ghost" id="btn-forget-shortcut-link">Olvidar enlace</button>' : '')
+    + '</div>'
+    + '<details style="margin-top:12px">'
+    + '<summary style="cursor:pointer;font-size:13px;color:var(--accent)">Usar mi propio atajo</summary>'
+    + '<p style="font-size:12px;color:var(--text2);margin:12px 0 0;line-height:1.5">'
+    + 'iOS solo instala atajos <strong>firmados por Apple</strong>. Puedes crear el tuyo a mano y '
+    + 'compartirlo como enlace de iCloud: ese enlace queda firmado y se instala de un toque.</p>'
+    + '<ol style="font-size:12px;color:var(--text2);margin:12px 0 0 18px;line-height:1.5">'
+    + pasosHTML + '</ol>'
+    + '<div class="form-group" style="margin-top:12px"><label class="form-label">Enlace de iCloud del atajo</label>'
+    + '<input class="form-input" id="quickadd-link" inputmode="url" autocapitalize="off" '
+    + 'autocorrect="off" spellcheck="false" placeholder="https://www.icloud.com/shortcuts/…"></div>'
+    + '<button class="btn btn-primary" id="btn-save-shortcut-link" style="margin-top:8px">Guardar enlace</button>'
+    + '</details>'
     + aviso
     + '<details style="margin-top:12px">'
     + '<summary style="cursor:pointer;font-size:13px;color:var(--accent)">Opciones avanzadas</summary>'
@@ -365,8 +372,7 @@ function renderInstallCard(slot) {
   document.getElementById('btn-install-shortcut')?.addEventListener('click', () => {
     // Se relee de la DB en vez de cerrar sobre el valor: así el enlace vuelve a
     // pasar por la validación justo antes de abrirlo.
-    const destino = normalizeShortcutLink(MF.db.loadData().settings?.applePayShortcutUrl);
-    if (!destino) { MF.nav.toast('El enlace guardado ya no es válido', 'error'); return; }
+    const destino = resolveShortcutLink(MF.db.loadData().settings?.applePayShortcutUrl);
     window.open(destino, '_blank', 'noopener');
   });
 
@@ -415,6 +421,8 @@ const _quickaddAPI = {
   downloadShortcut,
   renderInstallCard,
   normalizeShortcutLink,
+  resolveShortcutLink,
+  DEFAULT_SHORTCUT_URL,
   PASOS_MANUALES: _PASOS,
   QUICKADD_SECTION,
   DEFAULT_CAT,
