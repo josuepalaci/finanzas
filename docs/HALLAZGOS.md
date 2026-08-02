@@ -6,6 +6,8 @@ Revisión de todo el código fuente, estilos, tests y CI (verificado contra orig
 
 ## 🐛 Bugs vigentes
 
+> **Actualización 2026-08-02:** B1, B2, B3, B4, B6, B7, B8 y B9 fueron corregidos en `d7b9925` (tests 182/182 en verde, deploy automático verificado). Queda pendiente **B5** (ícono PNG para iOS) y las secciones de mejoras y UX.
+
 ### B1. Bug de zona horaria en todo el cálculo de fechas (confirmado: `npm test` falla hoy — 170/171)
 El código usa `new Date().toISOString().slice(0,10|7)` (UTC) para "hoy" y "mes actual", pero las fechas de transacción son locales. En El Salvador (UTC−6), **después de las 6 p.m. "hoy" en UTC ya es mañana**. Afecta a 13 módulos (`grep -rl "toISOString().slice" src/modules/`):
 - gastos.js / quickadd.js: fecha por defecto de nueva transacción = mañana; etiquetas Hoy/Ayer corridas.
